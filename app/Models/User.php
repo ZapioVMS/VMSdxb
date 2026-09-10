@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, BelongsToOrganization;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
         'organization_id',
@@ -37,6 +36,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
         ];
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
     }
 
     public function employee(): BelongsTo
