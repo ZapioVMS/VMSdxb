@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
     <style>
-        /* Embed Madkhal styles */
         :root{
           color-scheme: light;
           --accent:#0c6b64; --accent-2:#0f7a72; --accent-fg:#ffffff; --accent-soft:rgba(12,107,100,.10); --accent-soft-2:rgba(12,107,100,.18);
@@ -53,13 +52,13 @@
           #main{ padding:18px 16px 60px; }
         }
         .brand{ display:flex; align-items:center; gap:10px; padding:16px 18px; border-block-end:1px solid var(--border); }
-        .brand-mark{ width:32px; height:32px; border-radius:9px; background:linear-gradient(155deg, var(--accent-2), var(--accent)); display:flex; align-items:center; justify-content:center; color:var(--accent-fg); font-weight:700; font-size:15px; flex:none; }
+        .brand-mark{ width:32px; height:32px; border-radius:99px; background:linear-gradient(155deg, var(--accent-2), var(--accent)); display:flex; align-items:center; justify-content:center; color:var(--accent-fg); font-weight:700; font-size:15px; flex:none; }
         .brand-name{ font-weight:700; font-size:16.5px; letter-spacing:.1px; }
         .brand-sub{ font-size:11px; color:var(--text-muted); margin-top:1px; }
 
         nav.navlist{ padding:10px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; flex:1; }
         .navlabel{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); padding:14px 10px 6px; }
-        .navitem{ display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:var(--radius-sm); color:var(--text-secondary); cursor:pointer; font-size:13.5px; font-weight:500; border:none; background:none; width:100%; text-align:start; }
+        .navitem{ display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:var(--radius-sm); color:var(--text-secondary); cursor:pointer; font-size:13.5px; font-weight:500; border:none; background:none; width:100%; text-align:start; text-decoration:none; }
         .navitem:hover{ background:var(--surface-2); color:var(--text-primary); }
         .navitem.active{ background:var(--accent-soft); color:var(--accent); }
         .navitem .ic{ width:18px; height:18px; flex:none; }
@@ -68,7 +67,7 @@
         .icon-btn{ width:34px; height:34px; border-radius:var(--radius-sm); border:1px solid transparent; background:none; color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; position:relative; }
         .icon-btn:hover{ background:var(--surface-2); color:var(--text-primary); }
         .avatar{ width:32px; height:32px; border-radius:99px; background:var(--surface-3); color:var(--text-primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:none; }
-        .btn{ display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+        .btn{ display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; text-decoration:none; }
         .btn-primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-fg); }
         .btn-primary:hover{ background:var(--accent); filter:brightness(1.06); }
         .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
@@ -95,21 +94,18 @@
             </div>
             <nav class="navlist">
                 <div class="navlabel">Operations</div>
-                <button class="navitem active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1v-9"/></svg><span>Dashboard</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.6.4 4.5 2.4 4.5 5.3"/></svg><span>Visitor Log</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="10" cy="8" r="3.2"/><path d="M3 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3"/><path d="M19 8v5M16.5 10.5h5"/></svg><span>Check-In</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg><span>Pre-Registration</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3l7 3v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4.5"/></svg><span>Approvals</span></button>
-
-                <div class="navlabel">Manage</div>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3l7 3v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6l7-3z"/><path d="M12 8.5v4.2M12 15.5h.01"/></svg><span>Watchlist</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3.5 21.5 20h-19L12 3.5z"/><path d="M12 9.5v4.5M12 17h.01"/></svg><span>Evacuation</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M6 16.2c0-1.3 1-2 2-2s2 .7 2 2M13.5 10h5M13.5 13h5"/></svg><span>Badges</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20V10M10 20V4M16 20v-7M4 20h16"/></svg><span>Reports</span></button>
-
-                <div class="navlabel">System</div>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 3-6.3 6.5-6.3S15.5 16.4 15.5 20"/><circle cx="18" cy="15" r="2.1"/></svg><span>Users & Roles</span></button>
-                <button class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.8"/></svg><span>Settings</span></button>
+                <a href="{{ route('dashboard') }}" class="navitem {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1v-9"/></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ route('visitors.index') }}" class="navitem {{ request()->routeIs('visitors.index') ? 'active' : '' }}">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.6.4 4.5 2.4 4.5 5.3"/></svg>
+                    <span>Visitor Log</span>
+                </a>
+                <a href="{{ route('visitors.checkin') }}" class="navitem {{ request()->routeIs('visitors.checkin') ? 'active' : '' }}">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="10" cy="8" r="3.2"/><path d="M3 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3"/><path d="M19 8v5M16.5 10.5h5"/></svg>
+                    <span>Check-In</span>
+                </a>
             </nav>
             <div class="sidebar-foot">
                 <form action="{{ route('logout') }}" method="POST">
@@ -145,7 +141,7 @@
                         Live overview of visitor activity for {{ Auth::user()->organization->name ?? 'Meridian Business Solutions LLC' }}.
                     </div>
                 </div>
-                <button class="btn btn-primary">+ New Check-In</button>
+                <a href="{{ route('visitors.checkin') }}" class="btn btn-primary">+ New Check-In</a>
             </div>
 
             <div class="grid grid-4" style="margin-bottom:16px;">

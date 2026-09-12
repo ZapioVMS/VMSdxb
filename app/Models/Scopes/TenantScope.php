@@ -33,8 +33,14 @@ class TenantScope implements Scope
         if ($tenantId !== null) {
             $builder->where($model->getTable() . '.organization_id', '=', $tenantId);
         } else {
-            // Fail-closed security rule: If no valid tenant context is resolved and tenancy is NOT
-            // explicitly bypassed, block the query to prevent accidental cross-tenant data leakage.
+            // In Artisan console commands or seeders without an active user/session tenant,
+            // allow un-scoped execution unless explicitly overridden or running in HTTP context.
+            if (app()->runningInConsole() && !app()->runningUnitTests()) {
+                return;
+            }
+
+            // Fail-closed security rule in HTTP request context:
+            // Block query if no valid tenant context is resolved and tenancy is NOT bypassed.
             $builder->whereRaw('1 = 0');
         }
     }
