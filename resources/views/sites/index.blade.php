@@ -168,11 +168,14 @@
                     <div class="form-grid">
                         <div class="field">
                             <label for="site_name">Site Name *</label>
-                            <input type="text" id="site_name" name="name" required placeholder="Business Bay Tower">
+                            <input type="text" id="site_name" name="name" required placeholder="Business Bay Tower" oninput="debouncedTranslate()">
                         </div>
                         <div class="field">
-                            <label for="site_name_ar">Arabic Name</label>
-                            <input type="text" id="site_name_ar" name="name_ar" placeholder="برج الخليج التجاري">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <label for="site_name_ar">Arabic Name</label>
+                                <button type="button" id="btnTranslate" onclick="translateSiteName()" style="background:none;border:none;color:var(--accent);font-size:11.5px;font-weight:600;cursor:pointer;padding:0;" title="Translate English name to Arabic">🌐 Auto Translate</button>
+                            </div>
+                            <input type="text" id="site_name_ar" name="name_ar" placeholder="برج الخليج التجاري" dir="rtl">
                         </div>
                         <div class="field">
                             <label for="site_code">Site Code *</label>
@@ -208,6 +211,8 @@
     </div>
 
     <script>
+        let translateTimer = null;
+
         function openSiteModal(site) {
             const modal = document.getElementById('siteModal');
             const form = document.getElementById('siteForm');
@@ -233,8 +238,43 @@
             }
             modal.classList.add('open');
         }
+
         function closeSiteModal() {
             document.getElementById('siteModal').classList.remove('open');
+        }
+
+        function debouncedTranslate() {
+            clearTimeout(translateTimer);
+            translateTimer = setTimeout(() => {
+                const arInput = document.getElementById('site_name_ar');
+                // Only auto-translate if Arabic name is currently empty
+                if (arInput && !arInput.value.trim()) {
+                    translateSiteName();
+                }
+            }, 600);
+        }
+
+        async function translateSiteName() {
+            const nameInput = document.getElementById('site_name');
+            const arInput = document.getElementById('site_name_ar');
+            const btn = document.getElementById('btnTranslate');
+            const text = nameInput ? nameInput.value.trim() : '';
+
+            if (!text) return;
+
+            if (btn) btn.innerText = '⏳ Translating...';
+
+            try {
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ar`);
+                const data = await res.json();
+                if (data && data.responseData && data.responseData.translatedText) {
+                    arInput.value = data.responseData.translatedText;
+                }
+            } catch (e) {
+                console.error('Translation failed:', e);
+            } finally {
+                if (btn) btn.innerText = '🌐 Auto Translate';
+            }
         }
     </script>
 </body>
