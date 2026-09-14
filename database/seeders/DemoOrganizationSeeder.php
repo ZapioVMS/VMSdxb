@@ -13,6 +13,7 @@ use App\Models\VisitorType;
 use App\Models\VisitPurpose;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class DemoOrganizationSeeder extends Seeder
 {
@@ -129,30 +130,67 @@ class DemoOrganizationSeeder extends Seeder
             ['description' => 'Location admin access', 'status' => 'active']
         );
 
-        // 7. Create Users
-        $user1 = User::updateOrCreate(
-            ['email' => 'allanjacob03@gmail.com'],
-            [
-                'organization_id' => $org->id,
-                'employee_id' => $emp1->id,
-                'name' => 'Allan Jacob',
-                'password' => Hash::make('password'),
-                'status' => 'active',
-                'two_factor_enabled' => true,
-            ]
-        );
+ 
+        // 7. Create the initial organization administrator.
+        $email = $emp1->email;
+        $user1 = User::where('email', $email)->first();
 
-        $user2 = User::updateOrCreate(
-            ['email' => 'sarah.khan@zapio.ae'],
-            [
+        if ($user1 && (int) $user1->organization_id !== (int) $org->id) {
+            throw new \RuntimeException(
+                'This administrator email belongs to another organization.'
+            );
+        }
+
+        $password = null;
+        if (! $user1) {
+            $password = $this->command->secret(
+                'Enter a new administrator password (minimum 16 characters)'
+            );
+
+            $confirmation = $this->command->secret(
+                'Confirm administrator password'
+            );
+
+            if (! is_string($password)
+                || strlen($password) < 16
+                || $password !== $confirmation) {
+                throw new \RuntimeException(
+                    'Passwords must match and contain at least 16 characters.'
+                );
+            }
+        }
+
+        DB::transaction(function () use (
+            &$user1, $org, $emp1, $superAdminRole, $password
+        ) {
+            if (! $user1) {
+                $user1 = User::create([
+                    'organization_id' => $org->id,
+                    'employee_id' => $emp1->id,
+                    'name' => $emp1->first_name . ' ' . $emp1->last_name,
+                    'email' => $emp1->email,
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'two_factor_enabled' => false,
+                ]);
+            }
+
+            DB::table('user_roles')->insertOrIgnore([
                 'organization_id' => $org->id,
-                'employee_id' => $emp2->id,
-                'name' => 'Sarah Khan',
-                'password' => Hash::make('password'),
-                'status' => 'active',
-                'two_factor_enabled' => true,
-            ]
-        );
+                'user_id' => $user1->id,
+                'role_id' => $superAdminRole->id,
+                'site_id' => null,
+            ]);
+
+            foreach (DB::table('permissions')->pluck('id') as $permissionId) {
+                DB::table('role_permissions')->insertOrIgnore([
+                    'organization_id' => $org->id,
+                    'role_id' => $superAdminRole->id,
+                    'permission_id' => $permissionId,
+                ]);
+            }
+        });
+
 
         // 8. Create Visitor Types & Visit Purposes
         $vTypes = ['Regular Visitor', 'VIP', 'Contractor', 'Interview Candidate', 'Delivery / Courier'];
