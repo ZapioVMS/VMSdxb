@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class CheckInController extends Controller
 {
@@ -37,10 +38,11 @@ class CheckInController extends Controller
         }
         $countries = Country::orderBy('name')->get();
         $purposes = VisitPurpose::where('status', 'active')->get();
-        $employees = Employee::with('department')
+        $employees = Employee::with(['department', 'site'])
             ->where('status', 'active')
             ->get()
-            ->sortBy('first_name');
+            ->sortBy('first_name')
+            ->values();
         $visitorTypes = VisitorType::where('status', 'active')->get();
 
         return view('visitors.checkin', compact(
@@ -79,141 +81,146 @@ class CheckInController extends Controller
 
         $orgId = TenantScope::getTenantId();
 
-        // Format full phone number with dial code if provided
-        $fullPhone = $request->phone;
-        if ($request->phone && $request->phone_code) {
-            $fullPhone = '+' . preg_replace('/[^0-9]/', '', $request->phone_code) . ' ' . $request->phone;
-        }
+        try {
+            // Format full phone number with dial code if provided
+            $fullPhone = $request->phone;
+            if ($request->phone && $request->phone_code) {
+                $fullPhone = '+' . preg_replace('/[^0-9]/', '', $request->phone_code) . ' ' . $request->phone;
+            }
 
-        // 1. Resolve or Create Visitor Profile
-        $visitor = null;
-        if (!empty($validated['email']) || !empty($fullPhone)) {
-            $visitor = Visitor::where('organization_id', $orgId)
-                ->where(function ($q) use ($validated, $fullPhone) {
-                    if (!empty($validated['email'])) {
-                        $q->where('email', $validated['email']);
-                    }
-                    if (!empty($fullPhone)) {
-                        $q->orWhere('phone', $fullPhone);
-                    }
+            // Fetch Host Employee & Site Validation
+            $hostEmployee = Employee::with(['department', 'site'])->findOrFail($validated['host_employee_id']);
+            $site = Site::findOrFail($validated['site_id']);
+
+            // Validate that the host employee belongs to the selected site location if employee has a site assigned
+            if ($hostEmployee->site_id && (int) $hostEmployee->site_id !== (int) $validated['site_id']) {
+                $hostSiteName = $hostEmployee->site ? $hostEmployee->site->name : 'another site';
+                return back()->withInput()->with('error', "Selected host employee ({$hostEmployee->full_name}) is assigned to {$hostSiteName}. Please select a host employee belonging to {$site->name}.");
+            }
+
+            // 1. Resolve or Create Visitor Profile
+            $visitor = null;
+            if (!empty($validated['email']) || !empty($fullPhone)) {
+                $visitor = Visitor::where('organization_id', $orgId)
+                    ->where(function ($q) use ($validated, $fullPhone) {
+                        if (!empty($validated['email'])) {
+                            $q->where('email', $validated['email']);
+                        }
+                        if (!empty($fullPhone)) {
+                            $q->orWhere('phone', $fullPhone);
+                        }
+                    })
+                    ->first();
+            }
+
+            if (!$visitor) {
+                $visitor = Visitor::create([
+                    'organization_id' => $orgId,
+                    'first_name' => $validated['first_name'],
+                    'last_name' => $validated['last_name'] ?? null,
+                    'email' => $validated['email'] ?? null,
+                    'phone' => $fullPhone,
+                    'nationality_id' => $validated['nationality_id'] ?? null,
+                    'id_type_id' => $validated['id_type_id'],
+                    'id_number' => $validated['id_number'],
+                    'company_name' => $validated['company_name'] ?? null,
+                    'vehicle_plate' => $validated['vehicle_plate'] ?? null,
+                ]);
+            } else {
+                $visitor->update([
+                    'first_name' => $validated['first_name'],
+                    'last_name' => $validated['last_name'] ?? $visitor->last_name,
+                    'company_name' => $validated['company_name'] ?? $visitor->company_name,
+                    'id_type_id' => $validated['id_type_id'],
+                    'id_number' => $validated['id_number'],
+                ]);
+            }
+
+            $departmentId = $hostEmployee->department_id;
+            $defaultVisitorType = VisitorType::where('organization_id', $orgId)->first();
+            if (!$defaultVisitorType) {
+                $defaultVisitorType = VisitorType::create([
+                    'organization_id' => $orgId,
+                    'name' => 'General Visitor',
+                    'status' => 'active',
+                ]);
+            }
+
+            $durationMinutes = (int) $validated['duration'];
+            $checkInAt = now();
+            $scheduledEndAt = (clone $checkInAt)->addMinutes($durationMinutes);
+
+            // 3. Create Visit Record
+            $visit = Visit::create([
+                'organization_id' => $orgId,
+                'visitor_id' => $visitor->id,
+                'site_id' => $validated['site_id'],
+                'host_employee_id' => $hostEmployee->id,
+                'department_id' => $departmentId,
+                'purpose_id' => $validated['purpose_id'],
+                'visitor_type_id' => $defaultVisitorType ? $defaultVisitorType->id : null,
+                'scheduled_start_at' => $checkInAt,
+                'scheduled_end_at' => $scheduledEndAt,
+                'check_in_at' => $checkInAt,
+                'status' => 'checked_in',
+                'source' => 'walkin',
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // 4. Watchlist Match Screening
+            $idHash = hash('sha256', strtolower(trim($validated['id_number'])));
+            $fullName = strtolower(trim($visitor->full_name));
+
+            $watchlistEntry = WatchlistEntry::where('organization_id', $orgId)
+                ->where(function ($q) use ($idHash, $fullName) {
+                    $q->where('id_number_hash', $idHash)
+                      ->orWhereRaw('LOWER(name) LIKE ?', ['%' . $fullName . '%']);
                 })
                 ->first();
-        }
 
-        if (!$visitor) {
-            $visitor = Visitor::create([
-                'organization_id' => $orgId,
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'] ?? null,
-                'email' => $validated['email'] ?? null,
-                'phone' => $fullPhone,
-                'nationality_id' => $validated['nationality_id'] ?? null,
-                'id_type_id' => $validated['id_type_id'],
-                'id_number' => $validated['id_number'],
-                'company_name' => $validated['company_name'] ?? null,
-                'vehicle_plate' => $validated['vehicle_plate'] ?? null,
-            ]);
-        } else {
-            // Update existing profile details
-            $visitor->update([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'] ?? $visitor->last_name,
-                'company_name' => $validated['company_name'] ?? $visitor->company_name,
-                'id_type_id' => $validated['id_type_id'],
-                'id_number' => $validated['id_number'],
-            ]);
-        }
+            if ($watchlistEntry) {
+                WatchlistMatch::create([
+                    'organization_id' => $orgId,
+                    'visit_id' => $visit->id,
+                    'watchlist_entry_id' => $watchlistEntry->id,
+                    'match_type' => $watchlistEntry->id_number_hash === $idHash ? 'exact_id' : 'fuzzy_name',
+                    'score' => 0.9500,
+                    'decision' => 'pending',
+                ]);
+            }
 
-        // 2. Fetch Host Employee & Department
-        $hostEmployee = Employee::findOrFail($validated['host_employee_id']);
-        $departmentId = $hostEmployee->department_id;
+            // 5. Issue Badge
+            $badgeTemplate = BadgeTemplate::where('organization_id', $orgId)->first();
+            if (!$badgeTemplate) {
+                $badgeTemplate = BadgeTemplate::create([
+                    'organization_id' => $orgId,
+                    'name' => 'Default Badge Template',
+                    'layout_json' => ['style' => 'gradient', 'color' => '#0c6b64'],
+                    'status' => 'active',
+                ]);
+            }
 
-        // Ensure host employee's site_id matches visit's site_id so composite FK (organization_id, site_id, host_employee_id) passes
-        if ($hostEmployee->site_id !== (int)$validated['site_id']) {
-            $hostEmployee->update(['site_id' => $validated['site_id']]);
-        }
-
-        $defaultVisitorType = VisitorType::where('organization_id', $orgId)->first();
-        if (!$defaultVisitorType) {
-            $defaultVisitorType = VisitorType::create([
-                'organization_id' => $orgId,
-                'name' => 'General Visitor',
-                'status' => 'active',
-            ]);
-        }
-
-        $durationMinutes = (int) $validated['duration'];
-        $checkInAt = now();
-        $scheduledEndAt = (clone $checkInAt)->addMinutes($durationMinutes);
-
-        // 3. Create Visit Record
-        $visit = Visit::create([
-            'organization_id' => $orgId,
-            'visitor_id' => $visitor->id,
-            'site_id' => $validated['site_id'],
-            'host_employee_id' => $hostEmployee->id,
-            'department_id' => $departmentId,
-            'purpose_id' => $validated['purpose_id'],
-            'visitor_type_id' => $defaultVisitorType ? $defaultVisitorType->id : null,
-            'scheduled_start_at' => $checkInAt,
-            'scheduled_end_at' => $scheduledEndAt,
-            'check_in_at' => $checkInAt,
-            'status' => 'checked_in',
-            'source' => 'walkin',
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
-        // 4. Watchlist Match Screening
-        $idHash = hash('sha256', strtolower(trim($validated['id_number'])));
-        $fullName = strtolower(trim($visitor->full_name));
-
-        $watchlistEntry = WatchlistEntry::where('organization_id', $orgId)
-            ->where(function ($q) use ($idHash, $fullName) {
-                $q->where('id_number_hash', $idHash)
-                  ->orWhereRaw('LOWER(name) LIKE ?', ['%' . $fullName . '%']);
-            })
-            ->first();
-
-        if ($watchlistEntry) {
-            WatchlistMatch::create([
+            $badgeNumber = 'MDK-' . strtoupper(Str::random(5));
+            $badge = Badge::create([
                 'organization_id' => $orgId,
                 'visit_id' => $visit->id,
-                'watchlist_entry_id' => $watchlistEntry->id,
-                'match_type' => $watchlistEntry->id_number_hash === $idHash ? 'exact_id' : 'fuzzy_name',
-                'score' => 0.9500,
-                'decision' => 'pending',
+                'badge_number' => $badgeNumber,
+                'template_id' => $badgeTemplate->id,
+                'issued_at' => $checkInAt,
+                'expires_at' => $scheduledEndAt,
+                'status' => 'issued',
             ]);
-        }
 
-        // 5. Issue Badge
-        $badgeTemplate = BadgeTemplate::where('organization_id', $orgId)->first();
-        if (!$badgeTemplate) {
-            $badgeTemplate = BadgeTemplate::create([
-                'organization_id' => $orgId,
-                'name' => 'Default Badge Template',
-                'layout_json' => ['style' => 'gradient', 'color' => '#0c6b64'],
-                'status' => 'active',
+            return redirect()->route('visitors.index')->with([
+                'success' => 'Visitor successfully checked in!',
+                'badge_id' => $badge->id,
+                'badge_number' => $badgeNumber,
+                'visitor_name' => $visitor->full_name,
+                'host_name' => $hostEmployee->full_name,
             ]);
+        } catch (Throwable $e) {
+            return back()->withInput()->with('error', 'Unable to complete check-in: ' . $e->getMessage());
         }
-
-        $badgeNumber = 'MDK-' . strtoupper(Str::random(5));
-        $badge = Badge::create([
-            'organization_id' => $orgId,
-            'visit_id' => $visit->id,
-            'badge_number' => $badgeNumber,
-            'template_id' => $badgeTemplate->id,
-            'issued_at' => $checkInAt,
-            'expires_at' => $scheduledEndAt,
-            'status' => 'issued',
-        ]);
-
-        return redirect()->route('visitors.index')->with([
-            'success' => 'Visitor successfully checked in!',
-            'badge_id' => $badge->id,
-            'badge_number' => $badgeNumber,
-            'visitor_name' => $visitor->full_name,
-            'host_name' => $hostEmployee->full_name,
-        ]);
     }
 
     /**

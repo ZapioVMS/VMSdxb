@@ -185,6 +185,12 @@
                 <a href="{{ route('visitors.index') }}" class="btn">View Visitor Log</a>
             </div>
 
+            @if (session('error'))
+                <div class="alert-danger">
+                    <strong>⚠️ Check-In Error:</strong> {{ session('error') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert-danger">
                     <strong>Please fix the errors below:</strong>
@@ -200,7 +206,7 @@
                 ⚠️ <strong>Potential Watchlist Warning:</strong> The name entered matches a flagged security record. Please verify government ID carefully.
             </div>
 
-            <form action="{{ route('visitors.checkin.store') }}" method="POST">
+            <form action="{{ route('visitors.checkin.store') }}" method="POST" id="checkinForm">
                 @csrf
                 <div class="grid-layout">
                     <div class="card">
@@ -269,7 +275,7 @@
                                 </div>
                                 <div class="field">
                                     <label for="site_id">Site Location *</label>
-                                    <select id="site_id" name="site_id" required>
+                                    <select id="site_id" name="site_id" required onchange="filterEmployeesBySite()">
                                         @foreach ($sites as $site)
                                             <option value="{{ $site->id }}" {{ old('site_id') == $site->id ? 'selected' : '' }}>
                                                 {{ $site->name }} ({{ $site->city }})
@@ -281,11 +287,6 @@
                                     <label for="host_employee_id">Host Employee *</label>
                                     <select id="host_employee_id" name="host_employee_id" required>
                                         <option value="">Select Host Employee</option>
-                                        @foreach ($employees as $employee)
-                                            <option value="{{ $employee->id }}" {{ old('host_employee_id') == $employee->id ? 'selected' : '' }}>
-                                                {{ $employee->full_name }} — {{ $employee->department->name ?? 'General' }}
-                                            </option>
-                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="field">
@@ -337,6 +338,62 @@
     </div>
 
     <script>
+        const allEmployees = @json($employees);
+        const initialSelectedHost = "{{ old('host_employee_id') }}";
+
+        function filterEmployeesBySite() {
+            const siteSelect = document.getElementById('site_id');
+            const empSelect = document.getElementById('host_employee_id');
+            const selectedSiteId = siteSelect ? siteSelect.value : '';
+            const currentSelected = empSelect.value || initialSelectedHost;
+
+            empSelect.innerHTML = '<option value="">Select Host Employee</option>';
+
+            let matchCount = 0;
+            allEmployees.forEach(emp => {
+                // Include employee if they belong to the selected site OR if they have no site assigned (null)
+                if (!selectedSiteId || !emp.site_id || String(emp.site_id) === String(selectedSiteId)) {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id;
+                    const deptTag = emp.department ? ` — ${emp.department.name}` : '';
+                    opt.textContent = `${emp.first_name} ${emp.last_name || ''}${deptTag}`;
+                    if (String(emp.id) === String(currentSelected)) {
+                        opt.selected = true;
+                    }
+                    empSelect.appendChild(opt);
+                    matchCount++;
+                }
+            });
+
+            if (matchCount === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = '-- No employees assigned to this site --';
+                empSelect.appendChild(opt);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            filterEmployeesBySite();
+
+            document.getElementById('checkinForm').addEventListener('submit', function(e) {
+                const siteSelect = document.getElementById('site_id');
+                const empSelect = document.getElementById('host_employee_id');
+                const empId = empSelect ? empSelect.value : '';
+                const siteId = siteSelect ? siteSelect.value : '';
+
+                if (empId && siteId) {
+                    const selectedEmp = allEmployees.find(emp => String(emp.id) === String(empId));
+                    if (selectedEmp && selectedEmp.site_id && String(selectedEmp.site_id) !== String(siteId)) {
+                        e.preventDefault();
+                        const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].text : 'the selected site';
+                        alert(`Validation Alert: The host employee (${selectedEmp.first_name} ${selectedEmp.last_name || ''}) belongs to ${selectedEmp.site ? selectedEmp.site.name : 'another site'}. Please select a host employee assigned to ${siteName}.`);
+                        return false;
+                    }
+                }
+            });
+        });
+
         function checkWatchlistName(val) {
             const banner = document.getElementById('watchlistBanner');
             const lower = (val || '').toLowerCase().trim();
