@@ -86,16 +86,19 @@ class CheckInController extends Controller
         }
 
         // 1. Resolve or Create Visitor Profile
-        $visitor = Visitor::where('organization_id', $orgId)
-            ->where(function ($q) use ($request, $fullPhone) {
-                if ($request->email) {
-                    $q->where('email', $request->email);
-                }
-                if ($fullPhone) {
-                    $q->orWhere('phone', $fullPhone);
-                }
-            })
-            ->first();
+        $visitor = null;
+        if (!empty($validated['email']) || !empty($fullPhone)) {
+            $visitor = Visitor::where('organization_id', $orgId)
+                ->where(function ($q) use ($validated, $fullPhone) {
+                    if (!empty($validated['email'])) {
+                        $q->where('email', $validated['email']);
+                    }
+                    if (!empty($fullPhone)) {
+                        $q->orWhere('phone', $fullPhone);
+                    }
+                })
+                ->first();
+        }
 
         if (!$visitor) {
             $visitor = Visitor::create([
@@ -124,7 +127,20 @@ class CheckInController extends Controller
         // 2. Fetch Host Employee & Department
         $hostEmployee = Employee::findOrFail($validated['host_employee_id']);
         $departmentId = $hostEmployee->department_id;
+
+        // Ensure host employee's site_id matches visit's site_id so composite FK (organization_id, site_id, host_employee_id) passes
+        if ($hostEmployee->site_id !== (int)$validated['site_id']) {
+            $hostEmployee->update(['site_id' => $validated['site_id']]);
+        }
+
         $defaultVisitorType = VisitorType::where('organization_id', $orgId)->first();
+        if (!$defaultVisitorType) {
+            $defaultVisitorType = VisitorType::create([
+                'organization_id' => $orgId,
+                'name' => 'General Visitor',
+                'status' => 'active',
+            ]);
+        }
 
         $durationMinutes = (int) $validated['duration'];
         $checkInAt = now();
