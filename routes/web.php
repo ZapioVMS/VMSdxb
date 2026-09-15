@@ -28,6 +28,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Visitor Log & Check-In Routes
     Route::get('/visitors', [VisitorLogController::class, 'index'])->name('visitors.index');
+    Route::get('/visitors/export', [VisitorLogController::class, 'export'])->name('visitors.export');
     Route::get('/visitors/check-in', [CheckInController::class, 'create'])->name('visitors.checkin');
     Route::post('/visitors/check-in', [CheckInController::class, 'store'])->name('visitors.checkin.store');
     Route::post('/visits/{visit}/checkout', [CheckInController::class, 'checkout'])->name('visits.checkout');

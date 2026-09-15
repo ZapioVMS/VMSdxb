@@ -56,9 +56,29 @@
         .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
         .btn-primary:hover { background: var(--accent-hover); }
 
-        .filterbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-        .searchbox { flex: 1; max-width: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 7px 12px; }
-        .searchbox input { border: none; background: none; outline: none; width: 100%; font-size: 13px; font-family: inherit; }
+        .filterbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .searchbox { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 240px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 7px 14px; }
+        .searchbox input { border: none; background: none; outline: none; width: 100%; font-size: 13px; font-family: inherit; color: var(--text-primary); }
+
+        .pill-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .pill-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 6px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600;
+            border: 1.5px solid var(--border); background: var(--surface); color: var(--text-secondary);
+            cursor: pointer; text-decoration: none; transition: all 0.15s ease;
+        }
+        .pill-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+        .pill-btn.pill-all.active { background: var(--text-primary); color: #ffffff; border-color: var(--text-primary); }
+        .pill-btn.pill-checked-in { color: #0ca30c; border-color: rgba(12, 163, 12, 0.4); }
+        .pill-btn.pill-checked-in.active { background: #0ca30c; color: #ffffff; border-color: #0ca30c; }
+        .pill-btn.pill-expected { color: #0c6b64; border-color: rgba(12, 107, 100, 0.4); }
+        .pill-btn.pill-expected.active { background: #0c6b64; color: #ffffff; border-color: #0c6b64; }
+        .pill-btn.pill-checked-out { color: #7c8985; border-color: rgba(124, 137, 133, 0.4); }
+        .pill-btn.pill-checked-out.active { background: #7c8985; color: #ffffff; border-color: #7c8985; }
+        .pill-btn.pill-overstayed { color: #d03b3b; border-color: rgba(208, 59, 59, 0.4); }
+        .pill-btn.pill-overstayed.active { background: #d03b3b; color: #ffffff; border-color: #d03b3b; }
+
+        .select-filter { font-family: inherit; font-size: 13px; padding: 7px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); font-weight: 500; cursor: pointer; }
 
         .tablewrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
         table.dtable { width: 100%; border-collapse: collapse; }
@@ -69,6 +89,7 @@
 
         .chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; }
         .chip-good { background: rgba(12, 163, 12, 0.14); color: var(--good); }
+        .chip-info { background: rgba(12, 107, 100, 0.14); color: var(--accent); }
         .chip-muted { background: var(--surface-2); color: var(--text-muted); }
         .chip-critical { background: rgba(208, 59, 59, 0.14); color: var(--critical); }
 
@@ -137,9 +158,15 @@
             <div class="pagehead">
                 <div>
                     <h1>Visitor Log</h1>
-                    <div class="sub">Every visitor check-in across your site locations.</div>
+                    <div class="sub">Every visitor check-in across your sites.</div>
                 </div>
-                <a href="{{ route('visitors.checkin') }}" class="btn btn-primary">+ New Check-In</a>
+                <div style="display:flex;gap:10px;">
+                    <a href="{{ route('visitors.export', request()->query()) }}" class="btn">
+                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Export CSV</span>
+                    </a>
+                    <a href="{{ route('visitors.checkin') }}" class="btn btn-primary">+ New Check-In</a>
+                </div>
             </div>
 
             @if (session('success'))
@@ -153,27 +180,46 @@
                 </div>
             @endif
 
-            <form action="{{ route('visitors.index') }}" method="GET" class="filterbar">
-                <div class="searchbox">
-                    <input type="text" name="search" placeholder="Search visitor, host, company..." value="{{ request('search') }}">
+            <form action="{{ route('visitors.index') }}" method="GET" id="filterForm">
+                <input type="hidden" name="status" id="statusFilterInput" value="{{ request('status', 'all') }}">
+
+                <div class="filterbar">
+                    <div class="searchbox">
+                        <svg class="ic" style="color:var(--text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" name="search" placeholder="Search visitors, ID, company..." value="{{ request('search') }}" onchange="this.form.submit()">
+                    </div>
+
+                    <div class="pill-group">
+                        @php $currStatus = request('status', 'all'); @endphp
+                        <button type="button" onclick="setStatusFilter('all')" class="pill-btn pill-all {{ $currStatus === 'all' ? 'active' : '' }}">All</button>
+                        <button type="button" onclick="setStatusFilter('checked_in')" class="pill-btn pill-checked-in {{ $currStatus === 'checked_in' ? 'active' : '' }}">Checked in</button>
+                        <button type="button" onclick="setStatusFilter('expected')" class="pill-btn pill-expected {{ $currStatus === 'expected' ? 'active' : '' }}">Expected</button>
+                        <button type="button" onclick="setStatusFilter('checked_out')" class="pill-btn pill-checked-out {{ $currStatus === 'checked_out' ? 'active' : '' }}">Checked out</button>
+                        <button type="button" onclick="setStatusFilter('overstayed')" class="pill-btn pill-overstayed {{ $currStatus === 'overstayed' ? 'active' : '' }}">Overstayed</button>
+                    </div>
+
+                    <select name="site_id" onchange="this.form.submit()" class="select-filter">
+                        <option value="all">All Sites</option>
+                        @foreach ($sites as $site)
+                            <option value="{{ $site->id }}" {{ request('site_id') == $site->id ? 'selected' : '' }}>{{ $site->name }}</option>
+                        @endforeach
+                    </select>
+
+                    <select name="purpose_id" onchange="this.form.submit()" class="select-filter">
+                        <option value="all">All Purposes</option>
+                        @foreach ($purposes as $purpose)
+                            <option value="{{ $purpose->id }}" {{ request('purpose_id') == $purpose->id ? 'selected' : '' }}>{{ $purpose->name }}</option>
+                        @endforeach
+                    </select>
+
+                    <select name="date_range" onchange="this.form.submit()" class="select-filter">
+                        <option value="all" {{ request('date_range') == 'all' ? 'selected' : '' }}>All Time</option>
+                        <option value="today" {{ request('date_range') == 'today' ? 'selected' : '' }}>Today</option>
+                        <option value="last_7_days" {{ request('date_range', 'last_7_days') == 'last_7_days' ? 'selected' : '' }}>Last 7 days</option>
+                        <option value="last_30_days" {{ request('date_range') == 'last_30_days' ? 'selected' : '' }}>Last 30 days</option>
+                        <option value="this_month" {{ request('date_range') == 'this_month' ? 'selected' : '' }}>This Month</option>
+                    </select>
                 </div>
-                <select name="status" onchange="this.form.submit()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-family:inherit;">
-                    <option value="all">All Statuses</option>
-                    <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Checked In</option>
-                    <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>Checked Out</option>
-                </select>
-                <select name="site_id" onchange="this.form.submit()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-family:inherit;">
-                    <option value="all">All Sites</option>
-                    @foreach ($sites as $site)
-                        <option value="{{ $site->id }}" {{ request('site_id') == $site->id ? 'selected' : '' }}>{{ $site->name }}</option>
-                    @endforeach
-                </select>
-                <select name="purpose_id" onchange="this.form.submit()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-family:inherit;">
-                    <option value="all">All Purposes</option>
-                    @foreach ($purposes as $purpose)
-                        <option value="{{ $purpose->id }}" {{ request('purpose_id') == $purpose->id ? 'selected' : '' }}>{{ $purpose->name }}</option>
-                    @endforeach
-                </select>
             </form>
 
             <div class="tablewrap scrollx">
@@ -182,7 +228,7 @@
                         <tr>
                             <th>Visitor</th>
                             <th>Company</th>
-                            <th>Host Employee</th>
+                            <th>Host</th>
                             <th>Purpose</th>
                             <th>Site</th>
                             <th>Check-In</th>
@@ -205,13 +251,19 @@
                                 <td>{{ $visit->purpose->name ?? '—' }}</td>
                                 <td>{{ $visit->site->name ?? '—' }}</td>
                                 <td class="mono">
-                                    {{ $visit->check_in_at ? $visit->check_in_at->format('M d, g:i A') : '—' }}
+                                    {{ $visit->check_in_at ? $visit->check_in_at->format('d M, h:i A') : ($visit->scheduled_start_at ? $visit->scheduled_start_at->format('d M, h:i A') : '—') }}
                                 </td>
                                 <td>
                                     @if ($visit->status === 'checked_in')
-                                        <span class="chip chip-good">Checked In</span>
+                                        <span class="chip chip-good">Checked in</span>
+                                    @elseif ($visit->status === 'expected')
+                                        <span class="chip chip-info">Expected</span>
+                                    @elseif ($visit->status === 'overstayed')
+                                        <span class="chip chip-critical">Overstayed</span>
+                                    @elseif ($visit->status === 'checked_out')
+                                        <span class="chip chip-muted">Checked out</span>
                                     @else
-                                        <span class="chip chip-muted">Checked Out</span>
+                                        <span class="chip chip-muted">{{ ucfirst($visit->status) }}</span>
                                     @endif
                                 </td>
                                 <td style="text-align:end;">
@@ -221,7 +273,7 @@
                                             <button type="submit" class="btn" style="padding:4px 8px;font-size:12px;">Check Out</button>
                                         </form>
                                     @else
-                                        <span style="font-size:12px;color:var(--text-muted);">{{ $visit->check_out_at ? $visit->check_out_at->format('g:i A') : 'Out' }}</span>
+                                        <span style="font-size:12px;color:var(--text-muted);">{{ $visit->check_out_at ? $visit->check_out_at->format('g:i A') : '—' }}</span>
                                     @endif
                                 </td>
                             </tr>
@@ -241,5 +293,12 @@
             </div>
         </main>
     </div>
+
+    <script>
+        function setStatusFilter(val) {
+            document.getElementById('statusFilterInput').value = val;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
 </body>
 </html>
