@@ -138,7 +138,7 @@
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 10px; font-size:13px; margin-top:14px;">
                             <div>
                                 <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">Floors</div>
-                                <div style="font-weight:700; font-size:15px; margin-top:2px;">{{ $site->buildings_count > 0 ? $site->buildings_count * 12 : ($site->id == 1 ? 32 : ($site->id == 2 ? 12 : 8)) }}</div>
+                                <div style="font-weight:700; font-size:15px; margin-top:2px;">{{ $site->floors ?? ($site->buildings_count > 0 ? $site->buildings_count * 12 : ($site->id == 1 ? 32 : ($site->id == 2 ? 12 : 8))) }}</div>
                             </div>
                             <div>
                                 <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">Capacity</div>
@@ -186,8 +186,8 @@
                             <input type="text" id="site_name_ar" name="name_ar" placeholder="برج الخليج التجاري" dir="rtl">
                         </div>
                         <div class="field">
-                            <label for="site_code">Site Code *</label>
-                            <input type="text" id="site_code" name="code" required placeholder="BBT">
+                            <label for="site_floors">Floor nos</label>
+                            <input type="number" id="site_floors" name="floors" placeholder="32" min="0">
                         </div>
                         <div class="field">
                             <label for="site_city">City / Emirate</label>
@@ -233,7 +233,7 @@
                 method.value = 'PUT';
                 document.getElementById('site_name').value = site.name || '';
                 document.getElementById('site_name_ar').value = site.name_ar || '';
-                document.getElementById('site_code').value = site.code || '';
+                document.getElementById('site_floors').value = site.floors !== null && site.floors !== undefined ? site.floors : '';
                 document.getElementById('site_city').value = site.city || '';
                 document.getElementById('site_capacity').value = site.capacity || '';
                 document.getElementById('site_status').value = site.status || 'active';

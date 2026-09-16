@@ -22,6 +22,7 @@ class Site extends Model
         'address',
         'timezone',
         'capacity',
+        'floors',
         'visiting_hours',
         'status',
     ];
@@ -29,6 +30,7 @@ class Site extends Model
     protected $casts = [
         'visiting_hours' => 'array',
         'capacity' => 'integer',
+        'floors' => 'integer',
     ];
 
     public function buildings(): HasMany

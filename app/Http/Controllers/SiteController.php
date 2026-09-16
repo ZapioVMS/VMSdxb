@@ -38,11 +38,16 @@ class SiteController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'name_ar' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:500'],
             'capacity' => ['nullable', 'integer', 'min:0'],
+            'floors' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
+
+        if (empty($validated['code'])) {
+            $validated['code'] = strtoupper(\Illuminate\Support\Str::slug($validated['name'], '_')) ?: ('SITE_' . time());
+        }
 
         Site::create(array_merge($validated, ['organization_id' => $orgId]));
 
@@ -58,11 +63,16 @@ class SiteController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'name_ar' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:500'],
             'capacity' => ['nullable', 'integer', 'min:0'],
+            'floors' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
+
+        if (empty($validated['code']) && empty($site->code)) {
+            $validated['code'] = strtoupper(\Illuminate\Support\Str::slug($validated['name'], '_')) ?: ('SITE_' . time());
+        }
 
         $site->update($validated);
 
