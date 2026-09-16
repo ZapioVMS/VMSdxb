@@ -131,20 +131,7 @@
             </div>
         </aside>
 
-        <header id="topbar">
-            <div class="hstack" style="gap:10px;">
-                <span class="chip chip-good">Local Server Active</span>
-                <span style="font-weight:600;font-size:13px;">{{ Auth::user()->organization->name ?? 'Meridian Business Solutions LLC' }}</span>
-            </div>
-            <div style="flex:1;"></div>
-            <div class="hstack">
-                <div style="text-align:end;">
-                    <div style="font-weight:700;font-size:13px;">{{ Auth::user()->name }}</div>
-                    <div style="font-size:11px;color:var(--text-muted);">{{ Auth::user()->email }}</div>
-                </div>
-                <div class="avatar">{{ strtoupper(substr(Auth::user()->name, 0, 2)) }}</div>
-            </div>
-        </header>
+        @include('partials.topbar')
 
         <main id="main">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">

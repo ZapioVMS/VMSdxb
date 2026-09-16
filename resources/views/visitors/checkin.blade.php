@@ -167,14 +167,7 @@
             </div>
         </aside>
 
-        <header id="topbar">
-            <span style="font-weight:700;font-size:15px;">New Visitor Check-In</span>
-            <div style="flex:1;"></div>
-            <div style="text-align:end;">
-                <div style="font-weight:700;font-size:13px;">{{ Auth::user()->name }}</div>
-                <div style="font-size:11px;color:var(--text-muted);">{{ Auth::user()->organization->name ?? '' }}</div>
-            </div>
-        </header>
+        @include('partials.topbar')
 
         <main id="main">
             <div class="pagehead">

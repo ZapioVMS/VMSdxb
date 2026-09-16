@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Site;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +23,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Share active sites with all views for topbar site dropdown
+        View::composer('*', function ($view) {
+            if (auth()->check()) {
+                $globalSites = Site::where('status', 'active')->orderBy('name')->get();
+                $view->with('globalSites', $globalSites);
+            }
+        });
+
         // Global Super Admin Gate Bypass
         Gate::before(function (User $user, string $ability) {
             if ($user->roles()->where('name', 'Super Admin')->exists()) {
