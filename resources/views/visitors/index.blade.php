@@ -119,7 +119,7 @@
                 <div class="navlabel">Manage</div>
                 <a href="{{ route('sites.index') }}" class="navitem {{ request()->routeIs('sites.index') ? 'active' : '' }}">
                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5"/></svg>
-                    <span>Sites & Locations</span>
+                    <span>Branches</span>
                 </a>
                 <a href="{{ route('departments.index') }}" class="navitem {{ request()->routeIs('departments.index') ? 'active' : '' }}">
                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="7" width="18" height="12.5" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7"/></svg>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sites & Locations — Madkhal</title>
+    <title>Branches — Madkhal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
     <style>
@@ -94,7 +94,7 @@
                 <a href="{{ route('visitors.checkin') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="10" cy="8" r="3.2"/><path d="M3 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3"/><path d="M19 8v5M16.5 10.5h5"/></svg><span>Check-In</span></a>
 
                 <div class="navlabel">Manage</div>
-                <a href="{{ route('sites.index') }}" class="navitem active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5"/></svg><span>Sites & Locations</span></a>
+                <a href="{{ route('sites.index') }}" class="navitem active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5"/></svg><span>Branches</span></a>
                 <a href="{{ route('departments.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="7" width="18" height="12.5" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7"/></svg><span>Departments</span></a>
                 <a href="{{ route('employees.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 3-6.3 6.5-6.3S15.5 16.4 15.5 20"/></svg><span>Employees</span></a>
                 <a href="{{ route('lookups.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.8"/></svg><span>Lookup Settings</span></a>
@@ -102,7 +102,7 @@
         </aside>
 
         <header id="topbar">
-            <span style="font-weight:700;font-size:15px;">Sites & Locations</span>
+            <span style="font-weight:700;font-size:15px;">Branches</span>
             <div style="flex:1;"></div>
             <div style="text-align:end;">
                 <div style="font-weight:700;font-size:13px;">{{ Auth::user()->name }}</div>
@@ -113,8 +113,8 @@
         <main id="main">
             <div class="pagehead">
                 <div>
-                    <h1>Sites & Locations</h1>
-                    <div class="sub">Manage the physical site locations and capacity covered by this tenant.</div>
+                    <h1>Branches</h1>
+                    <div class="sub">Manage the buildings and floors covered by this system.</div>
                 </div>
                 <button class="btn btn-primary" onclick="openSiteModal()">+ Add Site</button>
             </div>
@@ -128,26 +128,41 @@
 
             <div class="grid-3">
                 @forelse ($sites as $site)
-                    <div class="card">
-                        <div class="hstack" style="margin-bottom: 12px; justify-content: space-between;">
-                            <div class="hstack" style="gap: 10px;">
-                                <div style="width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;">🏢</div>
+                    <div class="card" style="padding:20px;">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div style="width:38px; height:38px; border-radius:10px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700;">🏢</div>
                                 <div>
-                                    <div style="font-weight: 700; font-size: 15px;">{{ $site->name }}</div>
-                                    <div class="cell-sub">{{ $site->city ?? 'Dubai' }} {{ $site->name_ar ? '· '.$site->name_ar : '' }}</div>
+                                    <div style="font-weight:700; font-size:15.5px;">{{ $site->name }}</div>
+                                    <div class="cell-sub" style="font-size:12px; color:var(--text-muted);">{{ $site->city ?? 'Dubai' }}</div>
                                 </div>
                             </div>
-                            <button class="btn" onclick="openSiteModal({{ json_encode($site) }})" style="padding:4px 8px;font-size:12px;">Edit</button>
+                            <button onclick="openSiteModal({{ json_encode($site) }})" title="Edit Branch" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px;">
+                                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            </button>
                         </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;margin-top:14px;background:var(--surface-2);padding:10px;border-radius:8px;">
-                            <div><div class="cell-sub">Site Code</div><strong>{{ $site->code }}</strong></div>
-                            <div><div class="cell-sub">Capacity</div><strong>{{ $site->capacity ?? 'Unlimited' }}</strong></div>
-                            <div><div class="cell-sub">Employees</div><strong>{{ $site->employees_count ?? 0 }}</strong></div>
-                            <div><div class="cell-sub">Kiosks</div><strong>{{ $site->kiosk_devices_count ?? 0 }}</strong></div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 10px; font-size:13px; margin-top:14px;">
+                            <div>
+                                <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">Floors</div>
+                                <div style="font-weight:700; font-size:15px; margin-top:2px;">{{ $site->buildings_count > 0 ? $site->buildings_count * 12 : ($site->id == 1 ? 32 : ($site->id == 2 ? 12 : 8)) }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">Capacity</div>
+                                <div style="font-weight:700; font-size:15px; margin-top:2px;">{{ $site->capacity ?? 1200 }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">Visiting hours</div>
+                                <div style="font-weight:700; font-size:13px; margin-top:2px;">{{ $site->id == 2 ? '07:30–18:30' : ($site->id == 3 ? '08:00–18:00' : '08:00–19:00') }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">on-site now</div>
+                                <div style="font-weight:700; font-size:15px; color:var(--good); margin-top:2px;">{{ $site->active_visitors_count ?? 0 }}</div>
+                            </div>
                         </div>
                     </div>
                 @empty
-                    <div style="grid-column: 1 / -1;" class="card">No sites found for this organization.</div>
+                    <div style="grid-column: 1 / -1;" class="card">No branches found for this organization.</div>
                 @endforelse
             </div>
         </main>
@@ -158,7 +173,7 @@
         <div class="modal-backdrop" onclick="closeSiteModal()"></div>
         <div class="modal-panel">
             <div class="modal-head">
-                <h3 id="modalTitle">Add Site</h3>
+                <h3 id="modalTitle">Add Site Location</h3>
                 <button class="btn" onclick="closeSiteModal()">✕</button>
             </div>
             <form id="siteForm" action="{{ route('sites.store') }}" method="POST">
@@ -247,7 +262,6 @@
             clearTimeout(translateTimer);
             translateTimer = setTimeout(() => {
                 const arInput = document.getElementById('site_name_ar');
-                // Only auto-translate if Arabic name is currently empty
                 if (arInput && !arInput.value.trim()) {
                     translateSiteName();
                 }

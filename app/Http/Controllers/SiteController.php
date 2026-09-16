@@ -11,18 +11,24 @@ use Illuminate\View\View;
 class SiteController extends Controller
 {
     /**
-     * Display a listing of site locations.
+     * Display a listing of site branches.
      */
     public function index(): View
     {
-        $sites = Site::withCount(['buildings', 'employees', 'kioskDevices'])
-            ->get();
+        $sites = Site::withCount([
+            'buildings',
+            'employees',
+            'kioskDevices',
+            'visits as active_visitors_count' => function ($query) {
+                $query->where('status', 'checked_in');
+            }
+        ])->get();
 
         return view('sites.index', compact('sites'));
     }
 
     /**
-     * Store a newly created site location.
+     * Store a newly created site branch.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -40,11 +46,11 @@ class SiteController extends Controller
 
         Site::create(array_merge($validated, ['organization_id' => $orgId]));
 
-        return back()->with('success', 'Site location successfully created.');
+        return back()->with('success', 'Branch successfully created.');
     }
 
     /**
-     * Update the specified site location.
+     * Update the specified site branch.
      */
     public function update(Request $request, Site $site): RedirectResponse
     {
@@ -60,20 +66,20 @@ class SiteController extends Controller
 
         $site->update($validated);
 
-        return back()->with('success', 'Site location updated successfully.');
+        return back()->with('success', 'Branch updated successfully.');
     }
 
     /**
-     * Remove the specified site location.
+     * Remove the specified site branch.
      */
     public function destroy(Site $site): RedirectResponse
     {
         if ($site->employees()->exists() || $site->visits()->exists()) {
-            return back()->with('error', 'Cannot delete site — staff employees or visitor records are assigned to this location.');
+            return back()->with('error', 'Cannot delete branch — staff employees or visitor records are assigned to this branch.');
         }
 
         $site->delete();
 
-        return back()->with('success', 'Site location deleted successfully.');
+        return back()->with('success', 'Branch deleted successfully.');
     }
 }
