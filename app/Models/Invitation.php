@@ -26,10 +26,28 @@ class Invitation extends Model
         'sent_at',
         'expires_at',
         'status',
+        'recurring',
+        'meeting_room',
+        'duration',
+        'send_confirmation_email',
+        'notify_host_on_arrival',
+        'send_qr_self_checkin',
+        'requires_nda',
+        'wifi_guest_access',
+        'parking_required',
+        'escort_required',
     ];
 
     protected $casts = [
         'expected_visitor_count' => 'integer',
+        'duration' => 'integer',
+        'send_confirmation_email' => 'boolean',
+        'notify_host_on_arrival' => 'boolean',
+        'send_qr_self_checkin' => 'boolean',
+        'requires_nda' => 'boolean',
+        'wifi_guest_access' => 'boolean',
+        'parking_required' => 'boolean',
+        'escort_required' => 'boolean',
         'sent_at' => 'datetime',
         'expires_at' => 'datetime',
     ];

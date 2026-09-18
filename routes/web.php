@@ -5,6 +5,7 @@ use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LookupController;
+use App\Http\Controllers\PreRegistrationController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\VisitorLogController;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/visitors/check-in', [CheckInController::class, 'create'])->name('visitors.checkin');
     Route::post('/visitors/check-in', [CheckInController::class, 'store'])->name('visitors.checkin.store');
     Route::post('/visits/{visit}/checkout', [CheckInController::class, 'checkout'])->name('visits.checkout');
+
+    // Pre-Registration Routes
+    Route::get('/pre-registrations', [PreRegistrationController::class, 'index'])->name('pre_registrations.index');
+    Route::post('/pre-registrations', [PreRegistrationController::class, 'store'])->name('pre_registrations.store');
+    Route::put('/pre-registrations/{invitation}', [PreRegistrationController::class, 'update'])->name('pre_registrations.update');
+    Route::post('/pre-registrations/{invitation}/cancel', [PreRegistrationController::class, 'cancel'])->name('pre_registrations.cancel');
+    Route::post('/pre-registrations/{invitation}/resend', [PreRegistrationController::class, 'resend'])->name('pre_registrations.resend');
+    Route::get('/pre-registrations/export', [PreRegistrationController::class, 'export'])->name('pre_registrations.export');
 
     // Sites & Locations Management
     Route::get('/sites', [SiteController::class, 'index'])->name('sites.index');
