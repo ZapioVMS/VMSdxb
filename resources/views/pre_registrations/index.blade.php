@@ -106,14 +106,20 @@
 
         .alert-success { background: rgba(12, 163, 12, 0.14); border: 1px solid rgba(12, 163, 12, 0.30); color: var(--good); padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13.5px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
 
-        /* Modal root & backdrop with smooth full-overlay scrolling */
-        .modal-root { display: none; position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .modal-root.open { display: block; }
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(6, 12, 11, 0.5); z-index: 0; }
-        .modal-panel { position: relative; z-index: 1; max-width: 820px; width: calc(100% - 32px); margin: 5vh auto 50px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
-        .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
-        .modal-body { padding: 20px; }
-        .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); position: sticky; bottom: 0; background: var(--surface); z-index: 10; border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+        /* Modal styling with visible y-axis scrollbar */
+        .modal-root { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; background: rgba(6, 12, 11, 0.5); padding: 20px 16px; }
+        .modal-root.open { display: flex; }
+        .modal-backdrop { position: absolute; inset: 0; }
+        .modal-panel { position: relative; z-index: 1; max-width: 680px; width: 100%; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-panel form { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; height: 100%; }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+        .modal-head h3 { font-size: 16px; font-weight: 700; margin: 0; }
+        .modal-body { padding: 20px 24px; overflow-y: scroll; flex: 1; min-height: 0; max-height: calc(88vh - 130px); scrollbar-width: thin; scrollbar-color: #b0b8b6 transparent; }
+        .modal-body::-webkit-scrollbar { width: 8px; }
+        .modal-body::-webkit-scrollbar-track { background: transparent; }
+        .modal-body::-webkit-scrollbar-thumb { background: #b0b8b6; border-radius: 99px; }
+        .modal-body::-webkit-scrollbar-thumb:hover { background: #7c8985; }
+        .modal-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
         .section-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 16px 0 10px; border-top: 1px solid var(--border); padding-top: 14px; }
         .section-label:first-child { margin-top: 0; border-top: none; padding-top: 0; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -142,61 +148,8 @@
 </head>
 <body>
     <div id="app">
-        <aside id="sidebar">
-            <div class="brand">
-                <div class="brand-mark">M</div>
-                <div>
-                    <div class="brand-name">Madkhal</div>
-                    <div class="brand-sub">{{ Auth::user()->organization->name ?? 'Visitor Management' }}</div>
-                </div>
-            </div>
-            <nav class="navlist">
-                <div class="navlabel">Operations</div>
-                <a href="{{ route('dashboard') }}" class="navitem {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1v-9"/></svg>
-                    <span>Dashboard</span>
-                </a>
-                <a href="{{ route('visitors.index') }}" class="navitem {{ request()->routeIs('visitors.index') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.6.4 4.5 2.4 4.5 5.3"/></svg>
-                    <span>Visitor Log</span>
-                </a>
-                <a href="{{ route('visitors.checkin') }}" class="navitem {{ request()->routeIs('visitors.checkin') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="10" cy="8" r="3.2"/><path d="M3 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3"/><path d="M19 8v5M16.5 10.5h5"/></svg>
-                    <span>Check-In</span>
-                </a>
-                <a href="{{ route('pre_registrations.index') }}" class="navitem {{ request()->routeIs('pre_registrations.*') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
-                    <span>Pre-Registration</span>
-                </a>
+        @include('partials.sidebar', ['active' => 'pre_registrations'])
 
-                <div class="navlabel">Manage</div>
-                <a href="{{ route('sites.index') }}" class="navitem {{ request()->routeIs('sites.index') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5"/></svg>
-                    <span>Branches</span>
-                </a>
-                <a href="{{ route('departments.index') }}" class="navitem {{ request()->routeIs('departments.index') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="7" width="18" height="12.5" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7"/></svg>
-                    <span>Departments</span>
-                </a>
-                <a href="{{ route('employees.index') }}" class="navitem {{ request()->routeIs('employees.index') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 3-6.3 6.5-6.3S15.5 16.4 15.5 20"/></svg>
-                    <span>Employees</span>
-                </a>
-                <a href="{{ route('lookups.index') }}" class="navitem {{ request()->routeIs('lookups.index') ? 'active' : '' }}">
-                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.8"/></svg>
-                    <span>Lookup Settings</span>
-                </a>
-            </nav>
-            <div class="sidebar-foot">
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="navitem" style="width:100%; border:none; background:none;">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9M15 16l5-4-5-4M20 12H9"/></svg>
-                        <span>Sign Out</span>
-                    </button>
-                </form>
-            </div>
-        </aside>
 
         @include('partials.topbar')
 
@@ -450,39 +403,47 @@
                 <div class="modal-body">
                     <!-- Section 1: Visitor Information -->
                     <div class="section-label">Visitor Information</div>
+                    <div class="field" style="margin-bottom: 12px;">
+                        <label for="inv_name">Full Name *</label>
+                        <input type="text" id="inv_name" name="name" required placeholder="Full name">
+                    </div>
+                    <div class="field" style="margin-bottom: 12px;">
+                        <label for="inv_company_name">Company / Organization</label>
+                        <input type="text" id="inv_company_name" name="company_name" placeholder="Company name">
+                    </div>
                     <div class="form-grid">
                         <div class="field">
-                            <label for="inv_first_name">First Name *</label>
-                            <input type="text" id="inv_first_name" name="first_name" required placeholder="John">
+                            <label for="inv_email">Email (optional) *</label>
+                            <input type="email" id="inv_email" name="email" required placeholder="visitor@company.com">
                         </div>
                         <div class="field">
-                            <label for="inv_last_name">Last Name</label>
-                            <input type="text" id="inv_last_name" name="last_name" placeholder="Doe">
+                            <label for="inv_phone">Phone number</label>
+                            <div class="phone-group" style="display: flex; gap: 8px;">
+                                <select name="phone_code" id="inv_phone_code" style="width: 105px; flex: none;">
+                                    <option value="971" selected>+971</option>
+                                    <option value="966">+966</option>
+                                    <option value="974">+974</option>
+                                    <option value="965">+965</option>
+                                    <option value="973">+973</option>
+                                    <option value="968">+968</option>
+                                    <option value="1">+1</option>
+                                    <option value="44">+44</option>
+                                    <option value="91">+91</option>
+                                </select>
+                                <input type="tel" id="inv_phone" name="phone" placeholder="50 000 0000" style="flex: 1;">
+                            </div>
                         </div>
                         <div class="field">
-                            <label for="inv_company_name">Company / Organization</label>
-                            <input type="text" id="inv_company_name" name="company_name" placeholder="Acme Corp">
-                        </div>
-                        <div class="field">
-                            <label for="inv_email">Email Address *</label>
-                            <input type="email" id="inv_email" name="email" required placeholder="john.doe@company.com">
-                        </div>
-                        <div class="field">
-                            <label for="inv_phone">Phone Number</label>
-                            <input type="tel" id="inv_phone" name="phone" placeholder="+971 50 000 0000">
-                        </div>
-                        <div class="field">
-                            <label for="inv_id_type_id">ID Document Type</label>
+                            <label for="inv_id_type_id">ID type</label>
                             <select id="inv_id_type_id" name="id_type_id">
-                                <option value="">Select ID Type</option>
                                 @foreach ($idTypes as $idType)
-                                    <option value="{{ $idType->id }}">{{ $idType->name }}</option>
+                                    <option value="{{ $idType->id }}" {{ str_contains(strtolower($idType->name), 'emirates') ? 'selected' : '' }}>{{ $idType->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="field span2">
+                        <div class="field">
                             <label for="inv_id_number">ID Document Number</label>
-                            <input type="text" id="inv_id_number" name="id_number" placeholder="Emirates ID / Passport Number">
+                            <input type="text" id="inv_id_number" name="id_number" placeholder="Emirates ID / Passport number">
                         </div>
                     </div>
 
@@ -498,8 +459,13 @@
                             <select id="inv_expected_arrival" name="expected_arrival" required>
                                 @for ($h = 7; $h <= 21; $h++)
                                     @foreach (['00', '15', '30', '45'] as $m)
-                                        @php $timeVal = sprintf('%02d:%s', $h, $m); @endphp
-                                        <option value="{{ $timeVal }}" {{ $timeVal === '10:00' ? 'selected' : '' }}>{{ $timeVal }}</option>
+                                        @php
+                                            $h12 = $h > 12 ? $h - 12 : ($h == 0 ? 12 : $h);
+                                            $ampm = $h >= 12 ? 'PM' : 'AM';
+                                            $displayTime = sprintf('%02d:%s %s', $h12, $m, $ampm);
+                                            $valTime = sprintf('%02d:%s', $h, $m);
+                                        @endphp
+                                        <option value="{{ $valTime }}" {{ $valTime === '10:00' ? 'selected' : '' }}>{{ $displayTime }}</option>
                                     @endforeach
                                 @endfor
                             </select>
@@ -510,8 +476,13 @@
                                 <option value="">Not set</option>
                                 @for ($h = 7; $h <= 22; $h++)
                                     @foreach (['00', '15', '30', '45'] as $m)
-                                        @php $timeVal = sprintf('%02d:%s', $h, $m); @endphp
-                                        <option value="{{ $timeVal }}">{{ $timeVal }}</option>
+                                        @php
+                                            $h12 = $h > 12 ? $h - 12 : ($h == 0 ? 12 : $h);
+                                            $ampm = $h >= 12 ? 'PM' : 'AM';
+                                            $displayTime = sprintf('%02d:%s %s', $h12, $m, $ampm);
+                                            $valTime = sprintf('%02d:%s', $h, $m);
+                                        @endphp
+                                        <option value="{{ $valTime }}">{{ $displayTime }}</option>
                                     @endforeach
                                 @endfor
                             </select>
@@ -519,11 +490,11 @@
                         <div class="field">
                             <label for="inv_duration">Duration</label>
                             <select id="inv_duration" name="duration">
-                                <option value="30">30 minutes</option>
+                                <option value="30">30 min</option>
                                 <option value="60" selected>1 hour</option>
                                 <option value="120">2 hours</option>
-                                <option value="240">Half day (4 hours)</option>
-                                <option value="480">Full day (8 hours)</option>
+                                <option value="240">Half day</option>
+                                <option value="480">Full day</option>
                             </select>
                         </div>
                     </div>
@@ -531,7 +502,7 @@
                     <!-- Section 3: Recurring Visit -->
                     <div class="section-label">Recurring Visit</div>
                     <div class="field">
-                        <label for="inv_recurring">Recurrence Pattern</label>
+                        <label for="inv_recurring">Recurring Visit</label>
                         <select id="inv_recurring" name="recurring">
                             <option value="none">One-time visit</option>
                             <option value="daily">Daily</option>
@@ -554,7 +525,6 @@
                         <div class="field">
                             <label for="inv_visitor_type_id">Visitor Type</label>
                             <select id="inv_visitor_type_id" name="visitor_type_id">
-                                <option value="">Regular Visitor</option>
                                 @foreach ($visitorTypes as $vType)
                                     <option value="{{ $vType->id }}">{{ $vType->name }}</option>
                                 @endforeach
@@ -640,8 +610,11 @@
                 </div>
 
                 <div class="modal-foot">
-                    <button type="button" class="btn" onclick="closeInviteModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Pre-registration</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeInviteModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnRegisterNotify" style="display: inline-flex; align-items: center; gap: 8px;">
+                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 20.5 3.5 12.5 20l-2-6.5-6.5-2z"/><path d="M18.5 5.5 10.5 13.5"/></svg>
+                        <span>Register & Notify</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -708,6 +681,12 @@
             form.reset();
 
             // Set default date to today and arrival to 10:00
+            document.getElementById('inv_name').value = '';
+            document.getElementById('inv_company_name').value = '';
+            document.getElementById('inv_email').value = '';
+            document.getElementById('inv_phone').value = '';
+            document.getElementById('inv_phone_code').value = '971';
+            document.getElementById('inv_id_number').value = '';
             document.getElementById('inv_visit_date').value = "{{ date('Y-m-d') }}";
             document.getElementById('inv_expected_arrival').value = "10:00";
             document.getElementById('inv_duration').value = "60";
@@ -728,11 +707,20 @@
             form.action = '/pre-registrations/' + data.id;
             method.value = 'PUT';
 
-            document.getElementById('inv_first_name').value = data.first_name || '';
-            document.getElementById('inv_last_name').value = data.last_name || '';
+            document.getElementById('inv_name').value = data.name || ((data.first_name || '') + ' ' + (data.last_name || '')).trim();
             document.getElementById('inv_company_name').value = data.company_name || '';
             document.getElementById('inv_email').value = data.email || '';
-            document.getElementById('inv_phone').value = data.phone || '';
+            
+            let phoneVal = data.phone || '';
+            if (phoneVal.startsWith('+')) {
+                let parts = phoneVal.replace('+', '').split(' ', 2);
+                document.getElementById('inv_phone_code').value = parts[0] || '971';
+                document.getElementById('inv_phone').value = parts[1] || '';
+            } else {
+                document.getElementById('inv_phone_code').value = '971';
+                document.getElementById('inv_phone').value = phoneVal;
+            }
+
             document.getElementById('inv_id_type_id').value = data.id_type_id || '';
             document.getElementById('inv_id_number').value = data.id_number || '';
 

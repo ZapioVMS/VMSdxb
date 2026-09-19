@@ -6,6 +6,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LookupController;
 use App\Http\Controllers\PreRegistrationController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\VisitorLogController;
 use Illuminate\Support\Facades\Auth;
@@ -42,14 +43,34 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/pre-registrations/{invitation}/resend', [PreRegistrationController::class, 'resend'])->name('pre_registrations.resend');
     Route::get('/pre-registrations/export', [PreRegistrationController::class, 'export'])->name('pre_registrations.export');
 
-    // Sites & Locations Management
-    Route::get('/sites', [SiteController::class, 'index'])->name('sites.index');
+    // Unified Settings Hub & Preferences
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/general', [SettingsController::class, 'updateGeneral'])->name('settings.general');
+    Route::post('/settings/branding', [SettingsController::class, 'updateBranding'])->name('settings.branding');
+    Route::post('/settings/kiosk', [SettingsController::class, 'updateKiosk'])->name('settings.kiosk');
+    Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
+    Route::post('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
+    Route::post('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
+    Route::post('/settings/host-rules', [SettingsController::class, 'updateHostRules'])->name('settings.host_rules');
+    Route::post('/settings/meeting-rooms', [SettingsController::class, 'storeMeetingRoom'])->name('settings.meeting_rooms.store');
+    Route::delete('/settings/meeting-rooms/{id}', [SettingsController::class, 'destroyMeetingRoom'])->name('settings.meeting_rooms.destroy');
+    Route::post('/settings/delivery-carriers', [SettingsController::class, 'storeCarrier'])->name('settings.carriers.store');
+    Route::delete('/settings/delivery-carriers/{id}', [SettingsController::class, 'destroyCarrier'])->name('settings.carriers.destroy');
+    Route::post('/settings/package-sizes', [SettingsController::class, 'storePackageSize'])->name('settings.package_sizes.store');
+    Route::delete('/settings/package-sizes/{id}', [SettingsController::class, 'destroyPackageSize'])->name('settings.package_sizes.destroy');
+
+    // Sites & Locations Management (GET redirects to Settings Branches)
+    Route::get('/sites', function () {
+        return redirect()->route('settings.index', ['tab' => 'branches']);
+    })->name('sites.index');
     Route::post('/sites', [SiteController::class, 'store'])->name('sites.store');
     Route::put('/sites/{site}', [SiteController::class, 'update'])->name('sites.update');
     Route::delete('/sites/{site}', [SiteController::class, 'destroy'])->name('sites.destroy');
 
-    // Department Management
-    Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
+    // Department Management (GET redirects to Settings Departments)
+    Route::get('/departments', function () {
+        return redirect()->route('settings.index', ['tab' => 'departments']);
+    })->name('departments.index');
     Route::post('/departments', [DepartmentController::class, 'store'])->name('departments.store');
     Route::put('/departments/{department}', [DepartmentController::class, 'update'])->name('departments.update');
     Route::delete('/departments/{department}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
@@ -61,8 +82,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/employees/{employee}/leave', [EmployeeController::class, 'toggleLeave'])->name('employees.leave');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 
-    // Lookup Settings Management
-    Route::get('/lookups', [LookupController::class, 'index'])->name('lookups.index');
+    // Lookup Settings Management (GET redirects to Settings Lookups)
+    Route::get('/lookups', function () {
+        return redirect()->route('settings.index', ['tab' => request('tab', 'purposes')]);
+    })->name('lookups.index');
 
     Route::post('/lookups/purposes', [LookupController::class, 'storePurpose'])->name('lookups.purposes.store');
     Route::put('/lookups/purposes/{purpose}', [LookupController::class, 'updatePurpose'])->name('lookups.purposes.update');

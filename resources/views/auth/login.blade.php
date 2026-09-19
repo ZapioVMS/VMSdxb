@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Madkhal Visitor Management</title>
+    <title>Login — Zapio VMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
     <style>
@@ -180,12 +180,8 @@
 </head>
 <body>
     <div class="login-card">
-        <div class="brand-header">
-            <div class="brand-mark">M</div>
-            <div>
-                <div class="brand-title">Madkhal</div>
-                <div class="brand-sub">Visitor Management System</div>
-            </div>
+        <div class="brand-header" style="justify-content: center; margin-bottom: 24px;">
+            <img src="{{ asset('images/logo.png') }}" alt="Zapio VMS" style="height: 44px; width: auto; max-width: 100%;">
         </div>
 
         @if ($errors->any())

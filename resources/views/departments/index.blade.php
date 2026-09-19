@@ -83,28 +83,8 @@
 </head>
 <body>
     <div id="app">
-        <aside id="sidebar">
-            <div class="brand">
-                <div class="brand-mark">M</div>
-                <div>
-                    <div class="brand-name">Madkhal</div>
-                    <div class="brand-sub">{{ Auth::user()->organization->name ?? 'Visitor Management' }}</div>
-                </div>
-            </div>
-            <nav class="navlist">
-                <div class="navlabel">Operations</div>
-                <a href="{{ route('dashboard') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1v-9"/></svg><span>Dashboard</span></a>
-                <a href="{{ route('visitors.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.6.4 4.5 2.4 4.5 5.3"/></svg><span>Visitor Log</span></a>
-                <a href="{{ route('visitors.checkin') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="10" cy="8" r="3.2"/><path d="M3 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3"/><path d="M19 8v5M16.5 10.5h5"/></svg><span>Check-In</span></a>
-                <a href="{{ route('pre_registrations.index') }}" class="navitem {{ request()->routeIs('pre_registrations.*') ? 'active' : '' }}"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg><span>Pre-Registration</span></a>
+        @include('partials.sidebar', ['active' => 'departments'])
 
-                <div class="navlabel">Manage</div>
-                <a href="{{ route('sites.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5"/></svg><span>Branches</span></a>
-                <a href="{{ route('departments.index') }}" class="navitem active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="7" width="18" height="12.5" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7"/></svg><span>Departments</span></a>
-                <a href="{{ route('employees.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 3-6.3 6.5-6.3S15.5 16.4 15.5 20"/></svg><span>Employees</span></a>
-                <a href="{{ route('lookups.index') }}" class="navitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.8"/></svg><span>Lookup Settings</span></a>
-            </nav>
-        </aside>
 
         @include('partials.topbar')
 
