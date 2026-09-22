@@ -58,6 +58,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/settings/delivery-carriers/{id}', [SettingsController::class, 'destroyCarrier'])->name('settings.carriers.destroy');
     Route::post('/settings/package-sizes', [SettingsController::class, 'storePackageSize'])->name('settings.package_sizes.store');
     Route::delete('/settings/package-sizes/{id}', [SettingsController::class, 'destroyPackageSize'])->name('settings.package_sizes.destroy');
+    Route::post('/settings/floors', [SettingsController::class, 'storeFloor'])->name('settings.floors.store');
+    Route::put('/settings/floors/{id}', [SettingsController::class, 'updateFloor'])->name('settings.floors.update');
+    Route::delete('/settings/floors/{id}', [SettingsController::class, 'destroyFloor'])->name('settings.floors.destroy');
 
     // Sites & Locations Management (GET redirects to Settings Branches)
     Route::get('/sites', function () {

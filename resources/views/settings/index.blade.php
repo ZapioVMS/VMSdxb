@@ -86,6 +86,9 @@
         .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         @media (max-width: 1100px) { .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 750px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+        .countpill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+        .tagchips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tagchip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-secondary); }
 
         /* Switches */
         .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-block-end: 1px solid var(--border); }
@@ -1099,29 +1102,112 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <div>
                             <div style="font-size: 16px; font-weight: 700;">Floors & Locations</div>
-                            <div class="cell-sub">Building levels, zones, and wings</div>
+                            <div class="cell-sub">Manage floors for each branch. A branch can have as many floors as it needs.</div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="openModal('modalAddFloor')">+ Add Floor</button>
+                        <button type="button" class="btn btn-primary" onclick="openFloorModal()">+ Add Floor</button>
                     </div>
 
-                    <div class="grid grid-3">
-                        @forelse ($floors as $fl)
-                            <div class="card">
-                                <div style="display: flex; align-items: center; justify-content: space-between;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <div class="avatar-sq icon-tint-s2"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.5-8.58 3.91a2 2 0 0 1-1.66 0L2.6 12.5M22 17.5l-8.58 3.91a2 2 0 0 1-1.66 0L2.6 17.5"/></svg></div>
-                                        <div>
-                                            <div style="font-weight: 700; font-size: 14.5px;">{{ $fl->name }}</div>
-                                            <div class="cell-sub">Level {{ $fl->floor_number ?? '1' }} · {{ $fl->building ? $fl->building->name : 'Main Tower' }}</div>
+                    @foreach ($sites as $s)
+                        @php
+                            $branchFloors = $floors->filter(fn($f) => $f->site_id == $s->id || ($f->building && $f->building->site_id == $s->id));
+                        @endphp
+                        <div style="margin-bottom: 22px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="font-weight: 700; font-size: 14.5px;">{{ $s->name }}</div>
+                                    <span class="countpill">{{ $branchFloors->count() }}</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-ghost" onclick="openFloorModal(null, '{{ $s->id }}')">
+                                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                                    <span>Add Floor</span>
+                                </button>
+                            </div>
+
+                            @if ($branchFloors->count())
+                                <div class="grid grid-2">
+                                    @foreach ($branchFloors as $fl)
+                                        <div class="card">
+                                            <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div style="font-weight: 700; font-size: 14.5px;">{{ $fl->name }}</div>
+                                                    @if ($fl->description)
+                                                        <div class="cell-sub" style="margin-top: 2px;">{{ $fl->description }}</div>
+                                                    @endif
+                                                </div>
+                                                <div style="display: flex; gap: 4px;">
+                                                    <button type="button" class="btn btn-sm btn-ghost" onclick="editFloor({{ json_encode($fl) }})" title="Edit">
+                                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                                    </button>
+                                                    <form method="POST" action="{{ route('settings.floors.destroy', $fl->id) }}" onsubmit="return confirm('Remove floor?');" style="display: inline;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-ghost" title="Delete">
+                                                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            <div class="tagchips" style="margin-top: 12px;">
+                                                @forelse ($fl->areas as $area)
+                                                    <span class="tagchip">{{ $area->name }}</span>
+                                                @empty
+                                                    <span class="cell-sub">No areas specified</span>
+                                                @endforelse
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="card" style="margin-bottom: 0;">
+                                    <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">
+                                        No floors added for this branch yet.
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+
+                    @php
+                        $orphanedFloors = $floors->filter(fn($f) => !$f->site_id && (!$f->building || !$f->building->site_id));
+                    @endphp
+                    @if ($orphanedFloors->count())
+                        <div style="margin-bottom: 22px;">
+                            <div style="font-weight: 700; font-size: 14.5px; margin-bottom: 10px;">Unassigned Floors</div>
+                            <div class="grid grid-2">
+                                @foreach ($orphanedFloors as $fl)
+                                    <div class="card">
+                                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div style="font-weight: 700; font-size: 14.5px;">{{ $fl->name }}</div>
+                                                @if ($fl->description)
+                                                    <div class="cell-sub" style="margin-top: 2px;">{{ $fl->description }}</div>
+                                                @endif
+                                            </div>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button type="button" class="btn btn-sm btn-ghost" onclick="editFloor({{ json_encode($fl) }})" title="Edit">
+                                                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                                </button>
+                                                <form method="POST" action="{{ route('settings.floors.destroy', $fl->id) }}" onsubmit="return confirm('Remove floor?');" style="display: inline;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-ghost" title="Delete">
+                                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        <div class="tagchips" style="margin-top: 12px;">
+                                            @forelse ($fl->areas as $area)
+                                                <span class="tagchip">{{ $area->name }}</span>
+                                            @empty
+                                                <span class="cell-sub">No areas specified</span>
+                                            @endforelse
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="editFloor({{ json_encode($fl) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-                                </div>
+                                @endforeach
                             </div>
-                        @empty
-                            <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 40px;">No floors configured yet. Click "+ Add Floor" to create one.</div>
-                        @endforelse
-                    </div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- ================= TAB: HOST ALERTS ================= -->
@@ -1498,35 +1584,43 @@
 <!-- 9. Add Floor Modal -->
 <div id="modalAddFloor" class="modal-root">
     <div class="modal-backdrop" onclick="closeModal('modalAddFloor')"></div>
-    <div class="modal-panel" style="max-width: 440px;">
+    <div class="modal-panel" style="max-width: 480px;">
         <div class="modal-head">
             <h3 id="floorModalTitle">Add Floor</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddFloor')">✕</button>
         </div>
-        <form id="floorForm" method="POST" action="{{ route('lookups.floors.store') }}">
+        <form id="floorForm" method="POST" action="{{ route('settings.floors.store') }}">
             @csrf
             <input type="hidden" name="_method" id="floorMethod" value="POST">
             <div class="modal-body">
                 <div class="field">
-                    <label>Floor Name *</label>
-                    <input type="text" name="name" id="floorName" required placeholder="e.g. 4th Floor">
-                </div>
-                <div class="field">
-                    <label>Building / Branch</label>
-                    <select name="building_id" id="floorBuilding">
-                        @foreach ($buildings as $b)
-                            <option value="{{ $b->id }}">{{ $b->name }}</option>
+                    <label>Branch *</label>
+                    <select name="site_id" id="floorSiteId" required>
+                        @foreach ($sites as $s)
+                            <option value="{{ $s->id }}">{{ $s->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="field">
-                    <label>Floor Number</label>
-                    <input type="number" name="floor_number" id="floorNumber" value="1">
+                    <label>Floor Name *</label>
+                    <input type="text" name="name" id="floorName" required placeholder="e.g. Floor 6">
+                </div>
+                <div class="field">
+                    <label>Description</label>
+                    <input type="text" name="description" id="floorDescription" placeholder="e.g. Engineering & development">
+                </div>
+                <div class="field">
+                    <label>Areas / Rooms</label>
+                    <input type="text" name="areas" id="floorAreas" placeholder="e.g. Reception Desk, Lobby, Security">
+                    <div class="cell-sub" style="margin-top: 2px;">Comma-separated list, e.g. Reception, Meeting Room A, Open Office</div>
                 </div>
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddFloor')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Floor</button>
+                <button type="submit" class="btn btn-primary">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    <span>Save Floor</span>
+                </button>
             </div>
         </form>
     </div>
@@ -1702,14 +1796,31 @@
         openModal('modalAddIdType');
     }
 
-    // Edit Floor helper
+    // Floor helpers
+    function openFloorModal(id, siteId) {
+        document.getElementById('floorModalTitle').innerText = 'Add Floor';
+        document.getElementById('floorForm').action = "{{ route('settings.floors.store') }}";
+        document.getElementById('floorMethod').value = 'POST';
+        document.getElementById('floorName').value = '';
+        document.getElementById('floorDescription').value = '';
+        document.getElementById('floorAreas').value = '';
+        if (siteId) {
+            document.getElementById('floorSiteId').value = siteId;
+        }
+        openModal('modalAddFloor');
+    }
+
     function editFloor(fl) {
         document.getElementById('floorModalTitle').innerText = 'Edit Floor';
-        document.getElementById('floorForm').action = '/lookups/floors/' + fl.id;
+        document.getElementById('floorForm').action = '/settings/floors/' + fl.id;
         document.getElementById('floorMethod').value = 'PUT';
         document.getElementById('floorName').value = fl.name || '';
-        document.getElementById('floorBuilding').value = fl.building_id || '';
-        document.getElementById('floorNumber').value = fl.floor_number || 1;
+        const siteId = fl.site_id || (fl.building ? fl.building.site_id : '');
+        if (siteId) {
+            document.getElementById('floorSiteId').value = siteId;
+        }
+        document.getElementById('floorDescription').value = fl.description || '';
+        document.getElementById('floorAreas').value = fl.areas_text || (fl.areas ? fl.areas.map(a => a.name).join(', ') : '');
         openModal('modalAddFloor');
     }
 

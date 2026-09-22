@@ -18,16 +18,27 @@ class Floor extends Model
 
     protected $fillable = [
         'organization_id',
+        'site_id',
         'building_id',
         'name',
+        'description',
         'code',
         'capacity',
         'status',
     ];
 
+    protected $appends = [
+        'areas_text',
+    ];
+
     protected $casts = [
         'capacity' => 'integer',
     ];
+
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(Site::class, 'site_id');
+    }
 
     public function building(): BelongsTo
     {
@@ -37,5 +48,10 @@ class Floor extends Model
     public function areas(): HasMany
     {
         return $this->hasMany(Area::class, 'floor_id');
+    }
+
+    public function getAreasTextAttribute(): string
+    {
+        return $this->areas->pluck('name')->implode(', ');
     }
 }

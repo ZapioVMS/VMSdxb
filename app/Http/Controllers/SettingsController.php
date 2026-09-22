@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Area;
 use App\Models\Building;
 use App\Models\DeliveryCarrier;
 use App\Models\Department;
@@ -169,7 +170,7 @@ class SettingsController extends Controller
         $visitorTypes = VisitorType::orderBy('name')->get();
         $idTypes = IdType::orderBy('name')->get();
         $shifts = Shift::orderBy('name')->get();
-        $floors = Floor::with('building')->orderBy('name')->get();
+        $floors = Floor::with(['building', 'areas'])->orderBy('name')->get();
         $buildings = Building::orderBy('name')->get();
         $employees = Employee::where('status', 'active')->orderBy('first_name')->get();
         $kioskDevices = KioskDevice::with('site')->get();
@@ -573,5 +574,105 @@ class SettingsController extends Controller
         }
 
         return redirect()->route('settings.index', ['tab' => 'packageSizes'])->with('success', 'Package Size removed.');
+    }
+
+    /**
+     * Store Floor.
+     */
+    public function storeFloor(Request $request): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+
+        $validated = $request->validate([
+            'site_id' => ['required', 'exists:sites,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'areas' => ['nullable', 'string'],
+        ]);
+
+        $site = Site::find($validated['site_id']);
+        $building = Building::firstOrCreate(
+            ['organization_id' => $orgId, 'site_id' => $validated['site_id']],
+            ['name' => ($site ? $site->name : 'Main') . ' Tower', 'status' => 'active']
+        );
+
+        $floor = Floor::create([
+            'organization_id' => $orgId,
+            'site_id' => $validated['site_id'],
+            'building_id' => $building->id,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'status' => 'active',
+        ]);
+
+        if (!empty($validated['areas'])) {
+            $areaNames = array_filter(array_map('trim', explode(',', $validated['areas'])));
+            foreach ($areaNames as $areaName) {
+                Area::create([
+                    'organization_id' => $orgId,
+                    'floor_id' => $floor->id,
+                    'name' => $areaName,
+                    'status' => 'active',
+                ]);
+            }
+        }
+
+        return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Floor saved.');
+    }
+
+    /**
+     * Update Floor.
+     */
+    public function updateFloor(Request $request, string $id): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+
+        $validated = $request->validate([
+            'site_id' => ['required', 'exists:sites,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'areas' => ['nullable', 'string'],
+        ]);
+
+        $floor = Floor::findOrFail($id);
+        $site = Site::find($validated['site_id']);
+        $building = Building::firstOrCreate(
+            ['organization_id' => $orgId, 'site_id' => $validated['site_id']],
+            ['name' => ($site ? $site->name : 'Main') . ' Tower', 'status' => 'active']
+        );
+
+        $floor->update([
+            'site_id' => $validated['site_id'],
+            'building_id' => $building->id,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        Area::where('floor_id', $floor->id)->delete();
+        if (!empty($validated['areas'])) {
+            $areaNames = array_filter(array_map('trim', explode(',', $validated['areas'])));
+            foreach ($areaNames as $areaName) {
+                Area::create([
+                    'organization_id' => $orgId,
+                    'floor_id' => $floor->id,
+                    'name' => $areaName,
+                    'status' => 'active',
+                ]);
+            }
+        }
+
+        return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Floor saved.');
+    }
+
+    /**
+     * Delete Floor.
+     */
+    public function destroyFloor(string $id): RedirectResponse
+    {
+        $floor = Floor::findOrFail($id);
+        Area::where('floor_id', $floor->id)->delete();
+        $floor->delete();
+
+        return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Floor removed.');
     }
 }
