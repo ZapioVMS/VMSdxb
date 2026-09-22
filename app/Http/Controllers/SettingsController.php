@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Building;
+use App\Models\DeliveryCarrier;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Floor;
 use App\Models\IdType;
 use App\Models\KioskDevice;
+use App\Models\MeetingRoom;
 use App\Models\Organization;
 use App\Models\OrganizationSetting;
+use App\Models\PackageSize;
 use App\Models\Scopes\TenantScope;
 use App\Models\Shift;
 use App\Models\Site;
@@ -17,6 +20,7 @@ use App\Models\VisitorType;
 use App\Models\VisitPurpose;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -111,30 +115,42 @@ class SettingsController extends Controller
         ];
 
         // Meeting Rooms
-        $meetingRooms = $settingsRaw['meeting_rooms'] ?? [
-            ['id' => 'room_1', 'name' => 'Boardroom Alpha', 'site_name' => 'Business Bay Tower', 'capacity' => 20, 'bookings' => 14],
-            ['id' => 'room_2', 'name' => 'Conference Room 4B', 'site_name' => 'Business Bay Tower', 'capacity' => 10, 'bookings' => 8],
-            ['id' => 'room_3', 'name' => 'Meeting Room 2A', 'site_name' => 'Business Bay Tower', 'capacity' => 6, 'bookings' => 5],
-            ['id' => 'room_4', 'name' => 'Executive Suite C', 'site_name' => 'DIFC Gate Village', 'capacity' => 8, 'bookings' => 3],
-        ];
+        if (Schema::hasTable('meeting_rooms')) {
+            $meetingRooms = MeetingRoom::orderBy('name')->get()->map(fn($r) => ['id' => $r->id, 'name' => $r->name])->toArray();
+        } else {
+            $meetingRooms = $settingsRaw['meeting_rooms'] ?? [
+                ['id' => 'room_1', 'name' => 'Boardroom Alpha'],
+                ['id' => 'room_2', 'name' => 'Conference Room 4B'],
+                ['id' => 'room_3', 'name' => 'Meeting Room 2A'],
+                ['id' => 'room_4', 'name' => 'Executive Suite C'],
+            ];
+        }
 
         // Delivery Carriers
-        $deliveryCarriers = $settingsRaw['delivery_carriers'] ?? [
-            ['id' => 'carrier_1', 'name' => 'DHL Express', 'code' => 'DHL', 'deliveries' => 45, 'status' => 'active'],
-            ['id' => 'carrier_2', 'name' => 'FedEx', 'code' => 'FDX', 'deliveries' => 38, 'status' => 'active'],
-            ['id' => 'carrier_3', 'name' => 'Aramex', 'code' => 'ARMX', 'deliveries' => 62, 'status' => 'active'],
-            ['id' => 'carrier_4', 'name' => 'Amazon Logistics', 'code' => 'AMZN', 'deliveries' => 89, 'status' => 'active'],
-            ['id' => 'carrier_5', 'name' => 'Emirates Post', 'code' => 'EMPOST', 'deliveries' => 19, 'status' => 'active'],
-        ];
+        if (Schema::hasTable('delivery_carriers')) {
+            $deliveryCarriers = DeliveryCarrier::orderBy('name')->get()->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toArray();
+        } else {
+            $deliveryCarriers = $settingsRaw['delivery_carriers'] ?? [
+                ['id' => 'carrier_1', 'name' => 'DHL Express'],
+                ['id' => 'carrier_2', 'name' => 'FedEx'],
+                ['id' => 'carrier_3', 'name' => 'Aramex'],
+                ['id' => 'carrier_4', 'name' => 'Amazon Logistics'],
+                ['id' => 'carrier_5', 'name' => 'Emirates Post'],
+            ];
+        }
 
         // Package Sizes
-        $packageSizes = $settingsRaw['package_sizes'] ?? [
-            ['id' => 'size_1', 'name' => 'Envelope / Document', 'description' => 'Flat documents, legal papers & letters', 'icon' => 'file-text'],
-            ['id' => 'size_2', 'name' => 'Small Box', 'description' => 'Up to 30x20x15 cm (fits in small locker)', 'icon' => 'package'],
-            ['id' => 'size_3', 'name' => 'Medium Box', 'description' => 'Up to 50x40x30 cm (standard shipping carton)', 'icon' => 'box'],
-            ['id' => 'size_4', 'name' => 'Large Box', 'description' => 'Over 50 cm or weighing > 10 kg', 'icon' => 'archive'],
-            ['id' => 'size_5', 'name' => 'Pallet / Freight', 'description' => 'Bulk equipment, requires loading bay access', 'icon' => 'truck'],
-        ];
+        if (Schema::hasTable('package_sizes')) {
+            $packageSizes = PackageSize::orderBy('name')->get()->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->toArray();
+        } else {
+            $packageSizes = $settingsRaw['package_sizes'] ?? [
+                ['id' => 'size_1', 'name' => 'Envelope / Document'],
+                ['id' => 'size_2', 'name' => 'Small Box'],
+                ['id' => 'size_3', 'name' => 'Medium Box'],
+                ['id' => 'size_4', 'name' => 'Large Box'],
+                ['id' => 'size_5', 'name' => 'Pallet / Freight'],
+            ];
+        }
 
         // More Tab Models
         $departments = Department::with(['headEmployee'])
@@ -424,27 +440,23 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'site_id' => ['nullable', 'exists:sites,id'],
-            'capacity' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $site = Site::find($validated['site_id']);
-        $siteName = $site ? $site->name : 'All Branches';
-
-        $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'meeting_rooms']);
-        $rooms = $setting->value ?? [];
-
-        $rooms[] = [
-            'id' => 'room_' . time(),
-            'name' => $validated['name'],
-            'site_id' => $validated['site_id'],
-            'site_name' => $siteName,
-            'capacity' => (int) $validated['capacity'],
-            'bookings' => 0,
-        ];
-
-        $setting->value = $rooms;
-        $setting->save();
+        if (Schema::hasTable('meeting_rooms')) {
+            MeetingRoom::create([
+                'organization_id' => $orgId,
+                'name' => $validated['name'],
+            ]);
+        } else {
+            $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'meeting_rooms']);
+            $rooms = $setting->value ?? [];
+            $rooms[] = [
+                'id' => 'room_' . time(),
+                'name' => $validated['name'],
+            ];
+            $setting->value = $rooms;
+            $setting->save();
+        }
 
         return redirect()->route('settings.index', ['tab' => 'meetingRooms'])->with('success', 'Meeting Room added.');
     }
@@ -455,9 +467,12 @@ class SettingsController extends Controller
     public function destroyMeetingRoom(string $id): RedirectResponse
     {
         $orgId = TenantScope::getTenantId() ?? 1;
+        if (Schema::hasTable('meeting_rooms')) {
+            MeetingRoom::where('id', $id)->delete();
+        }
         $setting = OrganizationSetting::where('organization_id', $orgId)->where('key', 'meeting_rooms')->first();
         if ($setting && is_array($setting->value)) {
-            $setting->value = array_values(array_filter($setting->value, fn($r) => ($r['id'] ?? '') !== $id));
+            $setting->value = array_values(array_filter($setting->value, fn($r) => (string)($r['id'] ?? '') !== (string)$id));
             $setting->save();
         }
 
@@ -473,22 +488,23 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
         ]);
 
-        $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'delivery_carriers']);
-        $carriers = $setting->value ?? [];
-
-        $carriers[] = [
-            'id' => 'carrier_' . time(),
-            'name' => $validated['name'],
-            'code' => strtoupper($validated['code']),
-            'deliveries' => 0,
-            'status' => 'active',
-        ];
-
-        $setting->value = $carriers;
-        $setting->save();
+        if (Schema::hasTable('delivery_carriers')) {
+            DeliveryCarrier::create([
+                'organization_id' => $orgId,
+                'name' => $validated['name'],
+            ]);
+        } else {
+            $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'delivery_carriers']);
+            $carriers = $setting->value ?? [];
+            $carriers[] = [
+                'id' => 'carrier_' . time(),
+                'name' => $validated['name'],
+            ];
+            $setting->value = $carriers;
+            $setting->save();
+        }
 
         return redirect()->route('settings.index', ['tab' => 'deliveryCarriers'])->with('success', 'Delivery Carrier added.');
     }
@@ -499,9 +515,12 @@ class SettingsController extends Controller
     public function destroyCarrier(string $id): RedirectResponse
     {
         $orgId = TenantScope::getTenantId() ?? 1;
+        if (Schema::hasTable('delivery_carriers')) {
+            DeliveryCarrier::where('id', $id)->delete();
+        }
         $setting = OrganizationSetting::where('organization_id', $orgId)->where('key', 'delivery_carriers')->first();
         if ($setting && is_array($setting->value)) {
-            $setting->value = array_values(array_filter($setting->value, fn($c) => ($c['id'] ?? '') !== $id));
+            $setting->value = array_values(array_filter($setting->value, fn($c) => (string)($c['id'] ?? '') !== (string)$id));
             $setting->save();
         }
 
@@ -517,21 +536,23 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'package_sizes']);
-        $sizes = $setting->value ?? [];
-
-        $sizes[] = [
-            'id' => 'size_' . time(),
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? '',
-            'icon' => 'package',
-        ];
-
-        $setting->value = $sizes;
-        $setting->save();
+        if (Schema::hasTable('package_sizes')) {
+            PackageSize::create([
+                'organization_id' => $orgId,
+                'name' => $validated['name'],
+            ]);
+        } else {
+            $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'package_sizes']);
+            $sizes = $setting->value ?? [];
+            $sizes[] = [
+                'id' => 'size_' . time(),
+                'name' => $validated['name'],
+            ];
+            $setting->value = $sizes;
+            $setting->save();
+        }
 
         return redirect()->route('settings.index', ['tab' => 'packageSizes'])->with('success', 'Package Size added.');
     }
@@ -542,9 +563,12 @@ class SettingsController extends Controller
     public function destroyPackageSize(string $id): RedirectResponse
     {
         $orgId = TenantScope::getTenantId() ?? 1;
+        if (Schema::hasTable('package_sizes')) {
+            PackageSize::where('id', $id)->delete();
+        }
         $setting = OrganizationSetting::where('organization_id', $orgId)->where('key', 'package_sizes')->first();
         if ($setting && is_array($setting->value)) {
-            $setting->value = array_values(array_filter($setting->value, fn($s) => ($s['id'] ?? '') !== $id));
+            $setting->value = array_values(array_filter($setting->value, fn($s) => (string)($s['id'] ?? '') !== (string)$id));
             $setting->save();
         }
 

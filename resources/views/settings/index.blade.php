@@ -1023,19 +1023,16 @@
                     <div class="grid grid-3">
                         @foreach ($meetingRooms as $room)
                             <div class="card">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div class="avatar-sq icon-tint-s3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div class="avatar-sq icon-tint-s3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+                                        <div style="font-weight: 700; font-size: 15px;">{{ $room['name'] }}</div>
+                                    </div>
                                     <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                                     </form>
                                 </div>
-                                <div style="font-weight: 700; font-size: 15px; margin-top: 10px;">{{ $room['name'] }}</div>
-                                <div class="cell-sub">{{ $room['site_name'] ?? 'Main Office' }} · Seats {{ $room['capacity'] ?? 6 }} · {{ $room['bookings'] ?? 0 }} bookings</div>
-                                <button type="button" class="btn btn-sm" style="width: 100%; margin-top: 12px;" onclick="alert('Viewing reservations calendar for {{ $room['name'] }}');">
-                                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                                    <span>View Schedule</span>
-                                </button>
                             </div>
                         @endforeach
                     </div>
@@ -1057,10 +1054,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div style="display: flex; align-items: center; gap: 10px;">
                                         <div class="avatar-sq icon-tint-s4"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg></div>
-                                        <div>
-                                            <div style="font-weight: 700; font-size: 14.5px;">{{ $c['name'] }}</div>
-                                            <div class="cell-sub">Code: {{ $c['code'] }} · {{ $c['deliveries'] ?? 0 }} packages logged</div>
-                                        </div>
+                                        <div style="font-weight: 700; font-size: 14.5px;">{{ $c['name'] }}</div>
                                     </div>
                                     <form method="POST" action="{{ route('settings.carriers.destroy', $c['id']) }}" onsubmit="return confirm('Remove carrier?');">
                                         @csrf @method('DELETE')
@@ -1085,15 +1079,16 @@
                     <div class="grid grid-3">
                         @foreach ($packageSizes as $s)
                             <div class="card">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div class="avatar-sq icon-tint-s5"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m21 21-6-6m6 6v-4.8m0 4.8h-4.8M3 16.2V21m0 0h4.8M3 21l6-6M21 7.8V3m0 0h-4.8M21 3l-6 6M3 7.8V3m0 0h4.8M3 3l6 6"/></svg></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div class="avatar-sq icon-tint-s5"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m21 21-6-6m6 6v-4.8m0 4.8h-4.8M3 16.2V21m0 0h4.8M3 21l6-6M21 7.8V3m0 0h-4.8M21 3l-6 6M3 7.8V3m0 0h4.8M3 3l6 6"/></svg></div>
+                                        <div style="font-weight: 700; font-size: 14.5px;">{{ $s['name'] }}</div>
+                                    </div>
                                     <form method="POST" action="{{ route('settings.package_sizes.destroy', $s['id']) }}" onsubmit="return confirm('Remove size?');">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                                     </form>
                                 </div>
-                                <div style="font-weight: 700; font-size: 14.5px; margin-top: 10px;">{{ $s['name'] }}</div>
-                                <div class="cell-sub">{{ $s['description'] }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -1431,7 +1426,7 @@
 <!-- 6. Add Meeting Room Modal -->
 <div id="modalAddRoom" class="modal-root">
     <div class="modal-backdrop" onclick="closeModal('modalAddRoom')"></div>
-    <div class="modal-panel" style="max-width: 480px;">
+    <div class="modal-panel" style="max-width: 440px;">
         <div class="modal-head">
             <h3>Add Meeting Room</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddRoom')">✕</button>
@@ -1440,22 +1435,8 @@
             @csrf
             <div class="modal-body">
                 <div class="field">
-                    <label>Room Name *</label>
+                    <label>Meeting Room Name *</label>
                     <input type="text" name="name" required placeholder="e.g. Boardroom C">
-                </div>
-                <div class="form-grid">
-                    <div class="field">
-                        <label>Branch / Site</label>
-                        <select name="site_id">
-                            @foreach ($sites as $s)
-                                <option value="{{ $s->id }}">{{ $s->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Seating Capacity</label>
-                        <input type="number" name="capacity" value="8" min="1" max="100" required>
-                    </div>
                 </div>
             </div>
             <div class="modal-foot">
@@ -1471,19 +1452,15 @@
     <div class="modal-backdrop" onclick="closeModal('modalAddCarrier')"></div>
     <div class="modal-panel" style="max-width: 440px;">
         <div class="modal-head">
-            <h3>Add Delivery Carrier</h3>
+            <h3>Add Delivery Office / Carrier</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddCarrier')">✕</button>
         </div>
         <form method="POST" action="{{ route('settings.carriers.store') }}">
             @csrf
             <div class="modal-body">
                 <div class="field">
-                    <label>Carrier Name *</label>
-                    <input type="text" name="name" required placeholder="e.g. UPS Express">
-                </div>
-                <div class="field">
-                    <label>Tracking Code Prefix *</label>
-                    <input type="text" name="code" required placeholder="e.g. UPS">
+                    <label>Delivery Office / Carrier Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. DHL Express">
                 </div>
             </div>
             <div class="modal-foot">
@@ -1506,12 +1483,8 @@
             @csrf
             <div class="modal-body">
                 <div class="field">
-                    <label>Size Name *</label>
-                    <input type="text" name="name" required placeholder="e.g. Oversized Carton">
-                </div>
-                <div class="field">
-                    <label>Description</label>
-                    <input type="text" name="description" placeholder="e.g. Exceeds standard locker dimensions">
+                    <label>Package Size Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. Small Box">
                 </div>
             </div>
             <div class="modal-foot">
