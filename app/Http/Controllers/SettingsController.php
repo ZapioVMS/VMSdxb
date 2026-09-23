@@ -117,39 +117,55 @@ class SettingsController extends Controller
 
         // Meeting Rooms
         if (Schema::hasTable('meeting_rooms')) {
-            $meetingRooms = MeetingRoom::orderBy('name')->get()->map(fn($r) => ['id' => $r->id, 'name' => $r->name])->toArray();
+            $meetingRooms = MeetingRoom::with('site')->orderBy('name')->get()->map(fn($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'site_id' => $r->site_id,
+                'site_name' => $r->site?->name ?? 'Main Office',
+                'capacity' => $r->capacity ?? 8,
+                'bookings' => 0,
+            ])->toArray();
         } else {
             $meetingRooms = $settingsRaw['meeting_rooms'] ?? [
-                ['id' => 'room_1', 'name' => 'Boardroom Alpha'],
-                ['id' => 'room_2', 'name' => 'Conference Room 4B'],
-                ['id' => 'room_3', 'name' => 'Meeting Room 2A'],
-                ['id' => 'room_4', 'name' => 'Executive Suite C'],
+                ['id' => 'room_1', 'name' => 'Boardroom Alpha', 'site_name' => 'Business Bay Tower', 'capacity' => 20, 'bookings' => 0],
+                ['id' => 'room_2', 'name' => 'Conference Room 4B', 'site_name' => 'Business Bay Tower', 'capacity' => 10, 'bookings' => 0],
+                ['id' => 'room_3', 'name' => 'Meeting Room 2A', 'site_name' => 'Business Bay Tower', 'capacity' => 6, 'bookings' => 0],
+                ['id' => 'room_4', 'name' => 'Executive Suite C', 'site_name' => 'DIFC Gate Village', 'capacity' => 8, 'bookings' => 0],
             ];
         }
 
         // Delivery Carriers
         if (Schema::hasTable('delivery_carriers')) {
-            $deliveryCarriers = DeliveryCarrier::orderBy('name')->get()->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toArray();
+            $deliveryCarriers = DeliveryCarrier::orderBy('name')->get()->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'code' => $c->code ?? strtoupper(substr($c->name, 0, 3)),
+                'deliveries' => 0,
+            ])->toArray();
         } else {
             $deliveryCarriers = $settingsRaw['delivery_carriers'] ?? [
-                ['id' => 'carrier_1', 'name' => 'DHL Express'],
-                ['id' => 'carrier_2', 'name' => 'FedEx'],
-                ['id' => 'carrier_3', 'name' => 'Aramex'],
-                ['id' => 'carrier_4', 'name' => 'Amazon Logistics'],
-                ['id' => 'carrier_5', 'name' => 'Emirates Post'],
+                ['id' => 'carrier_1', 'name' => 'DHL Express', 'code' => 'DHL', 'deliveries' => 0],
+                ['id' => 'carrier_2', 'name' => 'FedEx', 'code' => 'FDX', 'deliveries' => 0],
+                ['id' => 'carrier_3', 'name' => 'Aramex', 'code' => 'ARMX', 'deliveries' => 0],
+                ['id' => 'carrier_4', 'name' => 'Amazon Logistics', 'code' => 'AMZN', 'deliveries' => 0],
+                ['id' => 'carrier_5', 'name' => 'Emirates Post', 'code' => 'EMPOST', 'deliveries' => 0],
             ];
         }
 
         // Package Sizes
         if (Schema::hasTable('package_sizes')) {
-            $packageSizes = PackageSize::orderBy('name')->get()->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->toArray();
+            $packageSizes = PackageSize::orderBy('name')->get()->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'description' => $s->description ?? '',
+            ])->toArray();
         } else {
             $packageSizes = $settingsRaw['package_sizes'] ?? [
-                ['id' => 'size_1', 'name' => 'Envelope / Document'],
-                ['id' => 'size_2', 'name' => 'Small Box'],
-                ['id' => 'size_3', 'name' => 'Medium Box'],
-                ['id' => 'size_4', 'name' => 'Large Box'],
-                ['id' => 'size_5', 'name' => 'Pallet / Freight'],
+                ['id' => 'size_1', 'name' => 'Envelope / Document', 'description' => 'Flat documents, legal papers & letters'],
+                ['id' => 'size_2', 'name' => 'Small Box', 'description' => 'Up to 30x20x15 cm (fits in small locker)'],
+                ['id' => 'size_3', 'name' => 'Medium Box', 'description' => 'Up to 50x40x30 cm (standard shipping carton)'],
+                ['id' => 'size_4', 'name' => 'Large Box', 'description' => 'Over 50 cm or weighing > 10 kg'],
+                ['id' => 'size_5', 'name' => 'Pallet / Freight', 'description' => 'Bulk equipment, requires loading bay access'],
             ];
         }
 
@@ -441,19 +457,28 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'site_id' => ['nullable', 'exists:sites,id'],
+            'capacity' => ['nullable', 'integer', 'min:1', 'max:500'],
         ]);
 
         if (Schema::hasTable('meeting_rooms')) {
             MeetingRoom::create([
                 'organization_id' => $orgId,
                 'name' => $validated['name'],
+                'site_id' => $validated['site_id'] ?? null,
+                'capacity' => $validated['capacity'] ?? 8,
             ]);
         } else {
             $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'meeting_rooms']);
             $rooms = $setting->value ?? [];
+            $site = !empty($validated['site_id']) ? Site::find($validated['site_id']) : null;
             $rooms[] = [
                 'id' => 'room_' . time(),
                 'name' => $validated['name'],
+                'site_id' => $validated['site_id'] ?? null,
+                'site_name' => $site?->name ?? 'Main Office',
+                'capacity' => (int)($validated['capacity'] ?? 8),
+                'bookings' => 0,
             ];
             $setting->value = $rooms;
             $setting->save();
@@ -489,12 +514,14 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:50'],
         ]);
 
         if (Schema::hasTable('delivery_carriers')) {
             DeliveryCarrier::create([
                 'organization_id' => $orgId,
                 'name' => $validated['name'],
+                'code' => strtoupper(trim($validated['code'])),
             ]);
         } else {
             $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'delivery_carriers']);
@@ -502,6 +529,8 @@ class SettingsController extends Controller
             $carriers[] = [
                 'id' => 'carrier_' . time(),
                 'name' => $validated['name'],
+                'code' => strtoupper(trim($validated['code'])),
+                'deliveries' => 0,
             ];
             $setting->value = $carriers;
             $setting->save();
@@ -537,12 +566,14 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
         ]);
 
         if (Schema::hasTable('package_sizes')) {
             PackageSize::create([
                 'organization_id' => $orgId,
                 'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
             ]);
         } else {
             $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'package_sizes']);
@@ -550,6 +581,7 @@ class SettingsController extends Controller
             $sizes[] = [
                 'id' => 'size_' . time(),
                 'name' => $validated['name'],
+                'description' => $validated['description'] ?? '',
             ];
             $setting->value = $sizes;
             $setting->save();

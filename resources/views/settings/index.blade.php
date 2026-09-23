@@ -1026,10 +1026,13 @@
                     <div class="grid grid-3">
                         @foreach ($meetingRooms as $room)
                             <div class="card">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="display: flex; align-items: flex-start; gap: 10px;">
                                         <div class="avatar-sq icon-tint-s3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
-                                        <div style="font-weight: 700; font-size: 15px;">{{ $room['name'] }}</div>
+                                        <div>
+                                            <div style="font-weight: 700; font-size: 15px;">{{ $room['name'] }}</div>
+                                            <div class="cell-sub" style="margin-top: 2px;">{{ $room['site_name'] ?? 'Main Office' }} · Seats {{ $room['capacity'] ?? 8 }} · {{ $room['bookings'] ?? 0 }} bookings</div>
+                                        </div>
                                     </div>
                                     <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');">
                                         @csrf @method('DELETE')
@@ -1054,10 +1057,13 @@
                     <div class="grid grid-3">
                         @foreach ($deliveryCarriers as $c)
                             <div class="card">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="display: flex; align-items: flex-start; gap: 10px;">
                                         <div class="avatar-sq icon-tint-s4"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg></div>
-                                        <div style="font-weight: 700; font-size: 14.5px;">{{ $c['name'] }}</div>
+                                        <div>
+                                            <div style="font-weight: 700; font-size: 14.5px;">{{ $c['name'] }}</div>
+                                            <div class="cell-sub" style="margin-top: 2px;">Code: {{ $c['code'] ?? '' }} · {{ $c['deliveries'] ?? 0 }} packages logged</div>
+                                        </div>
                                     </div>
                                     <form method="POST" action="{{ route('settings.carriers.destroy', $c['id']) }}" onsubmit="return confirm('Remove carrier?');">
                                         @csrf @method('DELETE')
@@ -1082,10 +1088,15 @@
                     <div class="grid grid-3">
                         @foreach ($packageSizes as $s)
                             <div class="card">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="display: flex; align-items: flex-start; gap: 10px;">
                                         <div class="avatar-sq icon-tint-s5"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m21 21-6-6m6 6v-4.8m0 4.8h-4.8M3 16.2V21m0 0h4.8M3 21l6-6M21 7.8V3m0 0h-4.8M21 3l-6 6M3 7.8V3m0 0h4.8M3 3l6 6"/></svg></div>
-                                        <div style="font-weight: 700; font-size: 14.5px;">{{ $s['name'] }}</div>
+                                        <div>
+                                            <div style="font-weight: 700; font-size: 14.5px;">{{ $s['name'] }}</div>
+                                            @if (!empty($s['description']))
+                                                <div class="cell-sub" style="margin-top: 2px;">{{ $s['description'] }}</div>
+                                            @endif
+                                        </div>
                                     </div>
                                     <form method="POST" action="{{ route('settings.package_sizes.destroy', $s['id']) }}" onsubmit="return confirm('Remove size?');">
                                         @csrf @method('DELETE')
@@ -1512,7 +1523,7 @@
 <!-- 6. Add Meeting Room Modal -->
 <div id="modalAddRoom" class="modal-root">
     <div class="modal-backdrop" onclick="closeModal('modalAddRoom')"></div>
-    <div class="modal-panel" style="max-width: 440px;">
+    <div class="modal-panel" style="max-width: 480px;">
         <div class="modal-head">
             <h3>Add Meeting Room</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddRoom')">✕</button>
@@ -1521,8 +1532,23 @@
             @csrf
             <div class="modal-body">
                 <div class="field">
-                    <label>Meeting Room Name *</label>
+                    <label>Room Name *</label>
                     <input type="text" name="name" required placeholder="e.g. Boardroom C">
+                </div>
+                <div class="form-grid" style="margin-top: 14px;">
+                    <div class="field">
+                        <label>Branch / Site</label>
+                        <select name="site_id">
+                            <option value="">Select Branch / Site</option>
+                            @foreach ($sites as $s)
+                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Seating Capacity</label>
+                        <input type="number" name="capacity" value="8" min="1" max="500">
+                    </div>
                 </div>
             </div>
             <div class="modal-foot">
@@ -1538,15 +1564,19 @@
     <div class="modal-backdrop" onclick="closeModal('modalAddCarrier')"></div>
     <div class="modal-panel" style="max-width: 440px;">
         <div class="modal-head">
-            <h3>Add Delivery Office / Carrier</h3>
+            <h3>Add Delivery Carrier</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddCarrier')">✕</button>
         </div>
         <form method="POST" action="{{ route('settings.carriers.store') }}">
             @csrf
             <div class="modal-body">
                 <div class="field">
-                    <label>Delivery Office / Carrier Name *</label>
-                    <input type="text" name="name" required placeholder="e.g. DHL Express">
+                    <label>Carrier Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. UPS Express">
+                </div>
+                <div class="field" style="margin-top: 14px;">
+                    <label>Tracking Code Prefix *</label>
+                    <input type="text" name="code" required placeholder="e.g. UPS">
                 </div>
             </div>
             <div class="modal-foot">
@@ -1571,6 +1601,10 @@
                 <div class="field">
                     <label>Package Size Name *</label>
                     <input type="text" name="name" required placeholder="e.g. Small Box">
+                </div>
+                <div class="field" style="margin-top: 14px;">
+                    <label>Description</label>
+                    <input type="text" name="description" placeholder="e.g. Up to 30x20x15 cm (fits in small locker)">
                 </div>
             </div>
             <div class="modal-foot">

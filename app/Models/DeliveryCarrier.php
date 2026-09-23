@@ -15,5 +15,6 @@ class DeliveryCarrier extends Model
     protected $fillable = [
         'organization_id',
         'name',
+        'code',
     ];
 }

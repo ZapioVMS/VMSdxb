@@ -15,5 +15,6 @@ class PackageSize extends Model
     protected $fillable = [
         'organization_id',
         'name',
+        'description',
     ];
 }
