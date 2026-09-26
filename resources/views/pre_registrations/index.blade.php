@@ -532,7 +532,7 @@
                         </div>
                         <div class="field">
                             <label for="inv_site_id">Branch / Location *</label>
-                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value)">
+                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value); filterMeetingRoomsBySite(this.value);">
                                 @foreach ($sites as $site)
                                     <option value="{{ $site->id }}">{{ $site->name }}</option>
                                 @endforeach
@@ -558,7 +558,12 @@
                         </div>
                         <div class="field">
                             <label for="inv_meeting_room">Meeting Room</label>
-                            <input type="text" id="inv_meeting_room" name="meeting_room" placeholder="e.g. Boardroom / Meeting Room A">
+                            <input type="text" id="inv_meeting_room" name="meeting_room" list="meeting_rooms_list" placeholder="Search or select room..." autocomplete="off">
+                            <datalist id="meeting_rooms_list">
+                                @foreach ($meetingRooms as $mr)
+                                    <option value="{{ $mr->name }}">{{ $mr->name }} ({{ $mr->floor?->name ? $mr->floor->name . ' · ' : '' }}Seats {{ $mr->capacity ?? 8 }})</option>
+                                @endforeach
+                            </datalist>
                         </div>
                         <div class="field span2">
                             <label for="inv_expected_visitor_count">Number of Visitors</label>
@@ -670,6 +675,25 @@
             });
         }
 
+        const allMeetingRoomsData = @json($meetingRooms);
+
+        function filterMeetingRoomsBySite(siteId) {
+            const dataList = document.getElementById('meeting_rooms_list');
+            if (!dataList) return;
+            dataList.innerHTML = '';
+            
+            allMeetingRoomsData.forEach(mr => {
+                if (!siteId || siteId === 'all' || String(mr.site_id) === String(siteId)) {
+                    const opt = document.createElement('option');
+                    opt.value = mr.name;
+                    const floorPart = mr.floor ? mr.floor.name + ' · ' : (mr.floor_name ? mr.floor_name + ' · ' : '');
+                    opt.label = `${mr.name} (${floorPart}Seats ${mr.capacity || 8})`;
+                    opt.textContent = `${mr.name} (${floorPart}Seats ${mr.capacity || 8})`;
+                    dataList.appendChild(opt);
+                }
+            });
+        }
+
         function openInviteModal() {
             const form = document.getElementById('inviteForm');
             const method = document.getElementById('invite_method');
@@ -691,9 +715,10 @@
             document.getElementById('inv_expected_arrival').value = "10:00";
             document.getElementById('inv_duration').value = "60";
 
-            // Trigger host filtering
+            // Trigger host & room filtering
             const siteId = document.getElementById('inv_site_id').value;
             filterHostEmployeesBySite(siteId);
+            filterMeetingRoomsBySite(siteId);
 
             document.getElementById('inviteModal').classList.add('open');
         }
@@ -738,6 +763,7 @@
             document.getElementById('inv_expected_visitor_count').value = data.expected_visitor_count || 1;
 
             filterHostEmployeesBySite(data.site_id);
+            filterMeetingRoomsBySite(data.site_id);
             document.getElementById('inv_host_employee_id').value = data.host_employee_id || '';
 
             document.getElementById('inv_send_confirmation_email').checked = !!data.send_confirmation_email;

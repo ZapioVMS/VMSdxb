@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\IdType;
 use App\Models\Invitation;
+use App\Models\MeetingRoom;
 use App\Models\Scopes\TenantScope;
 use App\Models\Site;
 use App\Models\Visit;
@@ -16,6 +17,7 @@ use App\Models\VisitPurpose;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -141,6 +143,10 @@ class PreRegistrationController extends Controller
             $idTypes = IdType::all();
         }
 
+        $meetingRooms = Schema::hasTable('meeting_rooms')
+            ? MeetingRoom::with(['site', 'floor'])->orderBy('name')->get()
+            : collect([]);
+
         return view('pre_registrations.index', compact(
             'invitations',
             'stats',
@@ -151,7 +157,8 @@ class PreRegistrationController extends Controller
             'employees',
             'purposes',
             'visitorTypes',
-            'idTypes'
+            'idTypes',
+            'meetingRooms'
         ));
     }
 

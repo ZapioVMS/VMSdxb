@@ -50,6 +50,11 @@ class Floor extends Model
         return $this->hasMany(Area::class, 'floor_id');
     }
 
+    public function meetingRooms(): HasMany
+    {
+        return $this->hasMany(MeetingRoom::class, 'floor_id');
+    }
+
     public function getAreasTextAttribute(): string
     {
         return $this->areas->pluck('name')->implode(', ');

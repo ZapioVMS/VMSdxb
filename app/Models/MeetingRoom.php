@@ -16,6 +16,7 @@ class MeetingRoom extends Model
     protected $fillable = [
         'organization_id',
         'site_id',
+        'floor_id',
         'name',
         'capacity',
     ];
@@ -27,5 +28,10 @@ class MeetingRoom extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class, 'site_id');
+    }
+
+    public function floor(): BelongsTo
+    {
+        return $this->belongsTo(Floor::class, 'floor_id');
     }
 }

@@ -90,6 +90,19 @@
         .tagchips { display: flex; gap: 6px; flex-wrap: wrap; }
         .tagchip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-secondary); }
 
+        /* Tag Input for Floor Areas */
+        .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); min-height: 42px; cursor: text; transition: border-color .15s; }
+        .tag-input-container:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+        .tag-input-container input { border: none !important; outline: none !important; box-shadow: none !important; background: transparent !important; padding: 3px 0 !important; font-size: 13px !important; min-width: 140px; flex: 1; color: var(--text-primary); }
+        .tagchip-item { display: inline-flex; align-items: center; gap: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-primary); padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .tagchip-item.is-meeting-room { background: var(--accent-soft); border-color: rgba(16, 185, 129, 0.3); color: var(--accent); }
+        .tagchip-remove { cursor: pointer; font-size: 13px; opacity: 0.6; line-height: 1; margin-left: 2px; }
+        .tagchip-remove:hover { opacity: 1; color: #ef4444; }
+        .suggestions-dropdown { position: relative; margin-top: 4px; max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); box-shadow: 0 6px 16px rgba(0,0,0,.08); z-index: 50; }
+        .suggestion-item { padding: 8px 12px; font-size: 12.5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: var(--surface-2); }
+
         /* Switches */
         .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-block-end: 1px solid var(--border); }
         .switchrow:last-child { border-block-end: none; }
@@ -1031,7 +1044,7 @@
                                         <div class="avatar-sq icon-tint-s3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
                                         <div>
                                             <div style="font-weight: 700; font-size: 15px;">{{ $room['name'] }}</div>
-                                            <div class="cell-sub" style="margin-top: 2px;">{{ $room['site_name'] ?? 'Main Office' }} · Seats {{ $room['capacity'] ?? 8 }} · {{ $room['bookings'] ?? 0 }} bookings</div>
+                                            <div class="cell-sub" style="margin-top: 2px;">{{ $room['site_name'] ?? 'Main Office' }}@if(!empty($room['floor_name'])) · {{ $room['floor_name'] }}@endif · Seats {{ $room['capacity'] ?? 8 }} · {{ $room['bookings'] ?? 0 }} bookings</div>
                                         </div>
                                     </div>
                                     <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');">
@@ -1528,27 +1541,37 @@
             <h3>Add Meeting Room</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddRoom')">✕</button>
         </div>
-        <form method="POST" action="{{ route('settings.meeting_rooms.store') }}">
+        <form method="POST" action="{{ route('settings.meeting_rooms.store') }}" id="formAddRoom">
             @csrf
             <div class="modal-body">
                 <div class="field">
-                    <label>Room Name *</label>
-                    <input type="text" name="name" required placeholder="e.g. Boardroom C">
+                    <label>Branch / Site *</label>
+                    <select name="site_id" id="roomSiteId" required onchange="onRoomBranchChange()">
+                        <option value="">Select Branch / Site</option>
+                        @foreach ($sites as $s)
+                            <option value="{{ $s->id }}" data-code="{{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }}">{{ $s->name }} ({{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }})</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="form-grid" style="margin-top: 14px;">
                     <div class="field">
-                        <label>Branch / Site</label>
-                        <select name="site_id">
-                            <option value="">Select Branch / Site</option>
-                            @foreach ($sites as $s)
-                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                        <label>Floor <span style="font-weight: 400; color: var(--text-muted);">(Optional)</span></label>
+                        <select name="floor_id" id="roomFloorId">
+                            <option value="">Select Floor</option>
+                            @foreach ($floors as $fl)
+                                <option value="{{ $fl->id }}" data-site-id="{{ $fl->site_id }}" data-name="{{ $fl->name }}">{{ $fl->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="field">
                         <label>Seating Capacity</label>
-                        <input type="number" name="capacity" value="8" min="1" max="500">
+                        <input type="number" name="capacity" id="roomCapacity" value="8" min="1" max="500">
                     </div>
+                </div>
+                <div class="field" style="margin-top: 14px;">
+                    <label>Room Name *</label>
+                    <input type="text" name="name" id="roomName" required placeholder="Branch code[unique for each branch]+Roomname+floorno.&code (e.g. BBT-Boardroom-FL02)">
+                    <div class="cell-sub" style="margin-top: 3px;">Unique room identifier across branches and floors</div>
                 </div>
             </div>
             <div class="modal-foot">
@@ -1629,7 +1652,7 @@
             <div class="modal-body">
                 <div class="field">
                     <label>Branch *</label>
-                    <select name="site_id" id="floorSiteId" required>
+                    <select name="site_id" id="floorSiteId" required onchange="onFloorBranchChange()">
                         @foreach ($sites as $s)
                             <option value="{{ $s->id }}">{{ $s->name }}</option>
                         @endforeach
@@ -1645,8 +1668,13 @@
                 </div>
                 <div class="field">
                     <label>Areas / Rooms</label>
-                    <input type="text" name="areas" id="floorAreas" placeholder="e.g. Reception Desk, Lobby, Security">
-                    <div class="cell-sub" style="margin-top: 2px;">Comma-separated list, e.g. Reception, Meeting Room A, Open Office</div>
+                    <input type="hidden" name="areas" id="floorAreas">
+                    <div id="floorTagsWrapper" class="tag-input-container" onclick="document.getElementById('floorTagInput').focus()">
+                        <div id="floorTagsList" style="display: contents;"></div>
+                        <input type="text" id="floorTagInput" placeholder="Type area or select meeting room, press Enter..." autocomplete="off">
+                    </div>
+                    <div id="floorRoomSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+                    <div class="cell-sub" style="margin-top: 4px;">Press Enter to add custom area, or pick from branch meeting rooms</div>
                 </div>
             </div>
             <div class="modal-foot">
@@ -1830,6 +1858,143 @@
         openModal('modalAddIdType');
     }
 
+    // Master data in JS
+    window.settingsMeetingRooms = @json($meetingRooms);
+    window.settingsFloors = @json($floors);
+
+    // Meeting Room Branch onchange handler
+    function onRoomBranchChange() {
+        const siteSelect = document.getElementById('roomSiteId');
+        const selectedSiteId = siteSelect.value;
+        const selectedOption = siteSelect.options[siteSelect.selectedIndex];
+        const siteCode = selectedOption ? (selectedOption.getAttribute('data-code') || '') : '';
+        const roomNameInput = document.getElementById('roomName');
+        const floorSelect = document.getElementById('roomFloorId');
+
+        // Auto-prefix room name with Branch Code
+        if (siteCode) {
+            const currentVal = roomNameInput.value.trim();
+            // If empty or already has an uppercase prefix like "XYZ-", replace or set prefix
+            if (!currentVal) {
+                roomNameInput.value = siteCode + '-';
+            } else if (/^[A-Za-z0-9]+-/.test(currentVal)) {
+                roomNameInput.value = currentVal.replace(/^[A-Za-z0-9]+-/, siteCode + '-');
+            } else {
+                roomNameInput.value = siteCode + '-' + currentVal;
+            }
+        }
+
+        // Filter floor dropdown by branch
+        if (floorSelect) {
+            const floorOptions = floorSelect.querySelectorAll('option');
+            floorOptions.forEach(opt => {
+                if (!opt.value) return; // Keep "Select Floor"
+                const optSiteId = opt.getAttribute('data-site-id');
+                if (!selectedSiteId || optSiteId === selectedSiteId) {
+                    opt.style.display = '';
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+            floorSelect.value = '';
+        }
+    }
+
+    // Interactive Tag Input for Floor Areas
+    let currentFloorTags = [];
+
+    function renderFloorTags() {
+        const listContainer = document.getElementById('floorTagsList');
+        const hiddenInput = document.getElementById('floorAreas');
+        if (!listContainer || !hiddenInput) return;
+
+        listContainer.innerHTML = '';
+        const currentSiteId = document.getElementById('floorSiteId')?.value || '';
+
+        currentFloorTags.forEach(tagName => {
+            const isMeetingRoom = window.settingsMeetingRooms.some(mr => 
+                String(mr.name).toLowerCase() === String(tagName).toLowerCase() && 
+                (!currentSiteId || String(mr.site_id) === String(currentSiteId))
+            );
+
+            const chip = document.createElement('span');
+            chip.className = 'tagchip-item' + (isMeetingRoom ? ' is-meeting-room' : '');
+            chip.innerHTML = `${escapeHtml(tagName)} <span class="tagchip-remove" onclick="removeFloorTag('${escapeJs(tagName)}')">&times;</span>`;
+            listContainer.appendChild(chip);
+        });
+
+        hiddenInput.value = currentFloorTags.join(', ');
+    }
+
+    function addFloorTag(name) {
+        const cleanName = (name || '').trim();
+        if (!cleanName) return;
+        // Avoid duplicate tags
+        if (!currentFloorTags.some(t => t.toLowerCase() === cleanName.toLowerCase())) {
+            currentFloorTags.push(cleanName);
+            renderFloorTags();
+        }
+        const tagInput = document.getElementById('floorTagInput');
+        if (tagInput) {
+            tagInput.value = '';
+        }
+        hideFloorRoomSuggestions();
+    }
+
+    function removeFloorTag(name) {
+        currentFloorTags = currentFloorTags.filter(t => t.toLowerCase() !== (name || '').toLowerCase());
+        renderFloorTags();
+    }
+
+    function showFloorRoomSuggestions(query) {
+        const dropdown = document.getElementById('floorRoomSuggestions');
+        const siteId = document.getElementById('floorSiteId')?.value || '';
+        if (!dropdown) return;
+
+        const q = (query || '').toLowerCase();
+        // Filter meeting rooms for this branch not already tagged
+        const matches = (window.settingsMeetingRooms || []).filter(mr => {
+            if (siteId && String(mr.site_id) !== String(siteId)) return false;
+            if (currentFloorTags.some(t => t.toLowerCase() === String(mr.name).toLowerCase())) return false;
+            return !q || String(mr.name).toLowerCase().includes(q);
+        });
+
+        if (matches.length === 0) {
+            dropdown.style.display = 'none';
+            dropdown.innerHTML = '';
+            return;
+        }
+
+        dropdown.innerHTML = matches.map(mr => `
+            <div class="suggestion-item" onclick="addFloorTag('${escapeJs(mr.name)}')">
+                <span>📍 <strong>${escapeHtml(mr.name)}</strong> <span style="color: var(--text-muted); font-size: 11px;">(Seats ${mr.capacity || 8})</span></span>
+                <span style="font-size: 11.5px; color: var(--accent); font-weight: 600;">+ Add</span>
+            </div>
+        `).join('');
+        dropdown.style.display = 'block';
+    }
+
+    function hideFloorRoomSuggestions() {
+        const dropdown = document.getElementById('floorRoomSuggestions');
+        if (dropdown) dropdown.style.display = 'none';
+    }
+
+    function onFloorBranchChange() {
+        const tagInput = document.getElementById('floorTagInput');
+        if (tagInput) {
+            showFloorRoomSuggestions(tagInput.value.trim());
+        }
+        renderFloorTags();
+    }
+
+    function escapeHtml(str) {
+        return (str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    function escapeJs(str) {
+        return (str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
     // Floor helpers
     function openFloorModal(id, siteId) {
         document.getElementById('floorModalTitle').innerText = 'Add Floor';
@@ -1837,7 +2002,8 @@
         document.getElementById('floorMethod').value = 'POST';
         document.getElementById('floorName').value = '';
         document.getElementById('floorDescription').value = '';
-        document.getElementById('floorAreas').value = '';
+        currentFloorTags = [];
+        renderFloorTags();
         if (siteId) {
             document.getElementById('floorSiteId').value = siteId;
         }
@@ -1854,17 +2020,57 @@
             document.getElementById('floorSiteId').value = siteId;
         }
         document.getElementById('floorDescription').value = fl.description || '';
-        document.getElementById('floorAreas').value = fl.areas_text || (fl.areas ? fl.areas.map(a => a.name).join(', ') : '');
+        
+        // Populate existing areas as tags
+        currentFloorTags = [];
+        if (fl.areas && Array.isArray(fl.areas)) {
+            currentFloorTags = fl.areas.map(a => a.name).filter(Boolean);
+        } else if (fl.areas_text) {
+            currentFloorTags = fl.areas_text.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        renderFloorTags();
+
         openModal('modalAddFloor');
     }
 
-    // Check query string on page load
+    // Check query string on page load and attach listeners
     window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab');
         if (tab) {
             switchTab(tab);
         }
+
+        // Setup Floor Tag Input event listeners
+        const tagInput = document.getElementById('floorTagInput');
+        if (tagInput) {
+            tagInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addFloorTag(tagInput.value);
+                } else if (e.key === 'Backspace' && !tagInput.value && currentFloorTags.length > 0) {
+                    currentFloorTags.pop();
+                    renderFloorTags();
+                }
+            });
+
+            tagInput.addEventListener('input', () => {
+                showFloorRoomSuggestions(tagInput.value.trim());
+            });
+
+            tagInput.addEventListener('focus', () => {
+                showFloorRoomSuggestions(tagInput.value.trim());
+            });
+        }
+
+        // Close suggestion dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const wrapper = document.getElementById('floorTagsWrapper');
+            const dropdown = document.getElementById('floorRoomSuggestions');
+            if (dropdown && wrapper && !wrapper.contains(e.target) && !dropdown.contains(e.target)) {
+                hideFloorRoomSuggestions();
+            }
+        });
     });
 </script>
 </body>

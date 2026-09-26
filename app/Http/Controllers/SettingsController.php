@@ -117,20 +117,23 @@ class SettingsController extends Controller
 
         // Meeting Rooms
         if (Schema::hasTable('meeting_rooms')) {
-            $meetingRooms = MeetingRoom::with('site')->orderBy('name')->get()->map(fn($r) => [
+            $meetingRooms = MeetingRoom::with(['site', 'floor'])->orderBy('name')->get()->map(fn($r) => [
                 'id' => $r->id,
                 'name' => $r->name,
                 'site_id' => $r->site_id,
                 'site_name' => $r->site?->name ?? 'Main Office',
+                'site_code' => $r->site?->code ?? '',
+                'floor_id' => $r->floor_id,
+                'floor_name' => $r->floor?->name ?? '',
                 'capacity' => $r->capacity ?? 8,
                 'bookings' => 0,
             ])->toArray();
         } else {
             $meetingRooms = $settingsRaw['meeting_rooms'] ?? [
-                ['id' => 'room_1', 'name' => 'Boardroom Alpha', 'site_name' => 'Business Bay Tower', 'capacity' => 20, 'bookings' => 0],
-                ['id' => 'room_2', 'name' => 'Conference Room 4B', 'site_name' => 'Business Bay Tower', 'capacity' => 10, 'bookings' => 0],
-                ['id' => 'room_3', 'name' => 'Meeting Room 2A', 'site_name' => 'Business Bay Tower', 'capacity' => 6, 'bookings' => 0],
-                ['id' => 'room_4', 'name' => 'Executive Suite C', 'site_name' => 'DIFC Gate Village', 'capacity' => 8, 'bookings' => 0],
+                ['id' => 'room_1', 'name' => 'Boardroom Alpha', 'site_name' => 'Business Bay Tower', 'site_code' => 'BBT', 'floor_id' => null, 'floor_name' => '', 'capacity' => 20, 'bookings' => 0],
+                ['id' => 'room_2', 'name' => 'Conference Room 4B', 'site_name' => 'Business Bay Tower', 'site_code' => 'BBT', 'floor_id' => null, 'floor_name' => '', 'capacity' => 10, 'bookings' => 0],
+                ['id' => 'room_3', 'name' => 'Meeting Room 2A', 'site_name' => 'Business Bay Tower', 'site_code' => 'BBT', 'floor_id' => null, 'floor_name' => '', 'capacity' => 6, 'bookings' => 0],
+                ['id' => 'room_4', 'name' => 'Executive Suite C', 'site_name' => 'DIFC Gate Village', 'site_code' => 'DIFC', 'floor_id' => null, 'floor_name' => '', 'capacity' => 8, 'bookings' => 0],
             ];
         }
 
@@ -458,6 +461,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'site_id' => ['nullable', 'exists:sites,id'],
+            'floor_id' => ['nullable', 'exists:floors,id'],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:500'],
         ]);
 
@@ -466,17 +470,22 @@ class SettingsController extends Controller
                 'organization_id' => $orgId,
                 'name' => $validated['name'],
                 'site_id' => $validated['site_id'] ?? null,
+                'floor_id' => $validated['floor_id'] ?? null,
                 'capacity' => $validated['capacity'] ?? 8,
             ]);
         } else {
             $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'meeting_rooms']);
             $rooms = $setting->value ?? [];
             $site = !empty($validated['site_id']) ? Site::find($validated['site_id']) : null;
+            $floor = !empty($validated['floor_id']) ? Floor::find($validated['floor_id']) : null;
             $rooms[] = [
                 'id' => 'room_' . time(),
                 'name' => $validated['name'],
                 'site_id' => $validated['site_id'] ?? null,
                 'site_name' => $site?->name ?? 'Main Office',
+                'site_code' => $site?->code ?? '',
+                'floor_id' => $validated['floor_id'] ?? null,
+                'floor_name' => $floor?->name ?? '',
                 'capacity' => (int)($validated['capacity'] ?? 8),
                 'bookings' => 0,
             ];
@@ -646,6 +655,13 @@ class SettingsController extends Controller
                     'name' => $areaName,
                     'status' => 'active',
                 ]);
+
+                if (Schema::hasTable('meeting_rooms')) {
+                    MeetingRoom::where('organization_id', $orgId)
+                        ->where('site_id', $validated['site_id'])
+                        ->where('name', $areaName)
+                        ->update(['floor_id' => $floor->id]);
+                }
             }
         }
 
@@ -681,15 +697,31 @@ class SettingsController extends Controller
         ]);
 
         Area::where('floor_id', $floor->id)->delete();
-        if (!empty($validated['areas'])) {
-            $areaNames = array_filter(array_map('trim', explode(',', $validated['areas'])));
-            foreach ($areaNames as $areaName) {
-                Area::create([
-                    'organization_id' => $orgId,
-                    'floor_id' => $floor->id,
-                    'name' => $areaName,
-                    'status' => 'active',
-                ]);
+        $areaNames = !empty($validated['areas'])
+            ? array_filter(array_map('trim', explode(',', $validated['areas'])))
+            : [];
+
+        if (Schema::hasTable('meeting_rooms')) {
+            // Unlink any meeting rooms previously on this floor that are no longer tagged
+            MeetingRoom::where('organization_id', $orgId)
+                ->where('floor_id', $floor->id)
+                ->whereNotIn('name', $areaNames)
+                ->update(['floor_id' => null]);
+        }
+
+        foreach ($areaNames as $areaName) {
+            Area::create([
+                'organization_id' => $orgId,
+                'floor_id' => $floor->id,
+                'name' => $areaName,
+                'status' => 'active',
+            ]);
+
+            if (Schema::hasTable('meeting_rooms')) {
+                MeetingRoom::where('organization_id', $orgId)
+                    ->where('site_id', $validated['site_id'])
+                    ->where('name', $areaName)
+                    ->update(['floor_id' => $floor->id]);
             }
         }
 
@@ -703,6 +735,9 @@ class SettingsController extends Controller
     {
         $floor = Floor::findOrFail($id);
         Area::where('floor_id', $floor->id)->delete();
+        if (Schema::hasTable('meeting_rooms')) {
+            MeetingRoom::where('floor_id', $floor->id)->update(['floor_id' => null]);
+        }
         $floor->delete();
 
         return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Floor removed.');
