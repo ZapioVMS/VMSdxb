@@ -631,6 +631,17 @@ class SettingsController extends Controller
             'areas' => ['nullable', 'string'],
         ]);
 
+        $existingFloor = Floor::where('organization_id', $orgId)
+            ->where('site_id', $validated['site_id'])
+            ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($validated['name']))])
+            ->first();
+
+        if ($existingFloor) {
+            return redirect()->route('settings.index', ['tab' => 'floors'])
+                ->withErrors(['name' => 'A floor with this name already exists for this branch.'])
+                ->withInput();
+        }
+
         $site = Site::find($validated['site_id']);
         $building = Building::firstOrCreate(
             ['organization_id' => $orgId, 'site_id' => $validated['site_id']],
@@ -681,6 +692,18 @@ class SettingsController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'areas' => ['nullable', 'string'],
         ]);
+
+        $existingFloor = Floor::where('organization_id', $orgId)
+            ->where('site_id', $validated['site_id'])
+            ->where('id', '!=', $id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($validated['name']))])
+            ->first();
+
+        if ($existingFloor) {
+            return redirect()->route('settings.index', ['tab' => 'floors'])
+                ->withErrors(['name' => 'A floor with this name already exists for this branch.'])
+                ->withInput();
+        }
 
         $floor = Floor::findOrFail($id);
         $site = Site::find($validated['site_id']);

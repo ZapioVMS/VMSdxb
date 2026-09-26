@@ -1664,7 +1664,11 @@
                 </div>
                 <div class="field">
                     <label>Floor Name *</label>
-                    <input type="text" name="name" id="floorName" required placeholder="e.g. Floor 6">
+                    <input type="text" name="name" id="floorName" required placeholder="e.g. Floor 6" oninput="validateFloorName()" onchange="validateFloorName()">
+                    <div id="floorNameError" style="display: none; color: #ef4444; font-size: 12px; margin-top: 5px; font-weight: 500;">
+                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span id="floorNameErrorMsg">This floor already exists for this branch.</span>
+                    </div>
                 </div>
                 <div class="field">
                     <label>Description</label>
@@ -1683,7 +1687,7 @@
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddFloor')">Cancel</button>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="floorSubmitBtn">
                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
                     <span>Save Floor</span>
                 </button>
@@ -1892,22 +1896,12 @@
         const siteSelect = document.getElementById('roomSiteId');
         const selectedSiteId = siteSelect.value;
         const selectedOption = siteSelect.options[siteSelect.selectedIndex];
-        const siteCode = selectedOption ? (selectedOption.getAttribute('data-code') || '') : '';
+        const siteCode = selectedOption && selectedOption.value ? (selectedOption.getAttribute('data-code') || '') : '';
         const roomNameInput = document.getElementById('roomName');
         const floorSelect = document.getElementById('roomFloorId');
 
-        // Auto-prefix room name with Branch Code
-        if (siteCode) {
-            const currentVal = roomNameInput.value.trim();
-            // If empty or already has an uppercase prefix like "XYZ-", replace or set prefix
-            if (!currentVal) {
-                roomNameInput.value = siteCode + '-';
-            } else if (/^[A-Za-z0-9]+-/.test(currentVal)) {
-                roomNameInput.value = currentVal.replace(/^[A-Za-z0-9]+-/, siteCode + '-');
-            } else {
-                roomNameInput.value = siteCode + '-' + currentVal;
-            }
-        }
+        // Clean reset prefix whenever branch changes (prevents mixing up multiple codes)
+        roomNameInput.value = siteCode ? siteCode + '-' : '';
 
         // Filter floor dropdown by branch
         if (floorSelect) {
@@ -1929,6 +1923,62 @@
 
     // Interactive Tag Input for Floor Areas
     let currentFloorTags = [];
+    let currentEditingFloorId = null;
+
+    function validateFloorName() {
+        const nameInput = document.getElementById('floorName');
+        const errorDiv = document.getElementById('floorNameError');
+        const errorMsg = document.getElementById('floorNameErrorMsg');
+        const submitBtn = document.getElementById('floorSubmitBtn');
+        const siteSelect = document.getElementById('floorSiteId');
+        if (!nameInput || !siteSelect) return true;
+
+        const floorName = nameInput.value.trim().toLowerCase();
+        const siteId = siteSelect.value;
+
+        if (!floorName) {
+            if (errorDiv) errorDiv.style.display = 'none';
+            nameInput.style.borderColor = '';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor = '';
+            }
+            return true;
+        }
+
+        // Check if floor name already exists in this site
+        const exists = (window.settingsFloors || []).some(f => {
+            const fSiteId = f.site_id || (f.building ? f.building.site_id : '');
+            if (String(fSiteId) !== String(siteId)) return false;
+            if (currentEditingFloorId && String(f.id) === String(currentEditingFloorId)) return false;
+            return String(f.name || '').trim().toLowerCase() === floorName;
+        });
+
+        if (exists) {
+            if (errorDiv && errorMsg) {
+                const siteName = siteSelect.options[siteSelect.selectedIndex]?.textContent || 'this branch';
+                errorMsg.textContent = `Floor "${nameInput.value.trim()}" already exists in ${siteName}.`;
+                errorDiv.style.display = 'block';
+            }
+            nameInput.style.borderColor = '#ef4444';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+            return false;
+        } else {
+            if (errorDiv) errorDiv.style.display = 'none';
+            nameInput.style.borderColor = '';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor = '';
+            }
+            return true;
+        }
+    }
 
     function renderFloorTags() {
         const listContainer = document.getElementById('floorTagsList');
@@ -2012,6 +2062,7 @@
             showFloorRoomSuggestions(tagInput.value.trim());
         }
         renderFloorTags();
+        validateFloorName();
     }
 
     function escapeHtml(str) {
@@ -2024,6 +2075,7 @@
 
     // Floor helpers
     function openFloorModal(id, siteId) {
+        currentEditingFloorId = null;
         document.getElementById('floorModalTitle').innerText = 'Add Floor';
         document.getElementById('floorForm').action = "{{ route('settings.floors.store') }}";
         document.getElementById('floorMethod').value = 'POST';
@@ -2034,10 +2086,12 @@
         if (siteId) {
             document.getElementById('floorSiteId').value = siteId;
         }
+        validateFloorName();
         openModal('modalAddFloor');
     }
 
     function editFloor(fl) {
+        currentEditingFloorId = fl.id;
         document.getElementById('floorModalTitle').innerText = 'Edit Floor';
         document.getElementById('floorForm').action = '/settings/floors/' + fl.id;
         document.getElementById('floorMethod').value = 'PUT';
@@ -2056,6 +2110,7 @@
             currentFloorTags = fl.areas_text.split(',').map(s => s.trim()).filter(Boolean);
         }
         renderFloorTags();
+        validateFloorName();
 
         openModal('modalAddFloor');
     }
@@ -2087,6 +2142,17 @@
 
             tagInput.addEventListener('focus', () => {
                 showFloorRoomSuggestions(tagInput.value.trim());
+            });
+        }
+
+        // Prevent floorForm submit if floor name is duplicate
+        const floorForm = document.getElementById('floorForm');
+        if (floorForm) {
+            floorForm.addEventListener('submit', (e) => {
+                if (!validateFloorName()) {
+                    e.preventDefault();
+                    return false;
+                }
             });
         }
 
