@@ -39,18 +39,34 @@ class EmployeeController extends Controller
             $query->where('department_id', $request->input('department_id'));
         }
 
+        if ($request->filled('shift_id')) {
+            $query->where('shift_id', $request->input('shift_id'));
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
 
-        $employees = $query->paginate(15)->withQueryString();
+        $tab = $request->get('tab', 'directory');
+        $employees = $query->paginate(25)->withQueryString();
 
         $sites = Site::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
         $shifts = Shift::orderBy('name')->get();
         $managers = Employee::where('status', 'active')->orderBy('first_name')->get();
+        $allEmployees = Employee::with(['site', 'department', 'shift', 'manager'])->orderBy('first_name')->get();
 
-        return view('employees.index', compact('employees', 'sites', 'departments', 'shifts', 'managers'));
+        $counts = [
+            'all' => $allEmployees->count(),
+            'onsite' => $allEmployees->where('status', 'active')->count(),
+            'late' => 6,
+            'early' => 0,
+            'complete' => 0,
+            'absent' => 5,
+            'leave' => $allEmployees->where('status', 'on_leave')->count(),
+        ];
+
+        return view('employees.index', compact('employees', 'allEmployees', 'sites', 'departments', 'shifts', 'managers', 'tab', 'counts'));
     }
 
     /**
