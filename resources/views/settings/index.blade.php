@@ -1672,7 +1672,7 @@
                         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <span id="floorNameErrorMsg">This floor already exists for this branch.</span>
                     </div>
-                    <div class="cell-sub" style="margin-top: 2px;">Click or type to view existing floors & rooms in this branch for reference</div>
+                    <div class="cell-sub" style="margin-top: 2px;">Click or type to view existing floors in this branch for reference</div>
                 </div>
                 <div class="field">
                     <label>Description</label>
@@ -1984,7 +1984,7 @@
         }
     }
 
-    // Autocomplete Suggestions for Floor Name
+    // Autocomplete Suggestions for Floor Name (Only existing floors for the selected branch)
     function showFloorNameSuggestions(filterText = null) {
         const input = document.getElementById('floorName');
         const dropdown = document.getElementById('floorNameSuggestions');
@@ -1995,25 +1995,19 @@
         const siteName = siteSelect.options[siteSelect.selectedIndex]?.textContent || 'Selected Branch';
         const query = (filterText !== null ? filterText : input.value).trim().toLowerCase();
 
-        // 1. Existing Floors in this site
+        // Existing Floors in this site only
         const branchFloors = (window.settingsFloors || []).filter(f => {
             const fSiteId = f.site_id || (f.building ? f.building.site_id : '');
             return String(fSiteId) === String(siteId);
         });
 
-        // 2. Existing Meeting Rooms in this site
-        const branchRooms = (window.settingsMeetingRooms || []).filter(mr => {
-            return String(mr.site_id) === String(siteId);
-        });
-
         const matchedFloors = branchFloors.filter(f => !query || String(f.name || '').toLowerCase().includes(query));
-        const matchedRooms = branchRooms.filter(mr => !query || String(mr.name || '').toLowerCase().includes(query));
 
-        if (matchedFloors.length === 0 && matchedRooms.length === 0) {
+        if (matchedFloors.length === 0) {
             if (!query) {
                 dropdown.innerHTML = `
                     <div style="padding: 10px 14px; font-size: 12px; color: var(--text-muted); text-align: center;">
-                        No floors or rooms created yet in <strong>${escapeHtml(siteName)}</strong>.<br>You can name this floor e.g. <em>Floor 1</em> or <em>Level 1</em>.
+                        No floors created yet in <strong>${escapeHtml(siteName)}</strong>.<br>You can name this floor e.g. <em>Floor 1</em> or <em>Level 1</em>.
                     </div>
                 `;
                 dropdown.style.display = 'block';
@@ -2025,43 +2019,23 @@
         }
 
         let html = '';
-        html += `<div style="padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); background: var(--surface-2); border-bottom: 1px solid var(--border);">Format references in ${escapeHtml(siteName)}</div>`;
+        html += `<div style="padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); background: var(--surface-2); border-bottom: 1px solid var(--border);">Existing floors in ${escapeHtml(siteName)}</div>`;
 
-        if (matchedFloors.length > 0) {
-            matchedFloors.forEach(f => {
-                const areaCount = (f.areas && f.areas.length) ? `${f.areas.length} areas` : (f.areas_text ? `${f.areas_text.split(',').length} areas` : 'No areas');
-                html += `
-                    <div class="suggestion-item" onmousedown="selectFloorNameSuggestion('${escapeJs(f.name)}')">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 14px;">🏢</span>
-                            <div>
-                                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">${escapeHtml(f.name)}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Existing Floor (${escapeHtml(areaCount)})</div>
-                            </div>
+        matchedFloors.forEach(f => {
+            const areaCount = (f.areas && f.areas.length) ? `${f.areas.length} areas` : (f.areas_text ? `${f.areas_text.split(',').length} areas` : 'No areas');
+            html += `
+                <div class="suggestion-item" onmousedown="selectFloorNameSuggestion('${escapeJs(f.name)}')">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 14px;">🏢</span>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">${escapeHtml(f.name)}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Existing Floor (${escapeHtml(areaCount)})</div>
                         </div>
-                        <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px;">Use format</span>
                     </div>
-                `;
-            });
-        }
-
-        if (matchedRooms.length > 0) {
-            matchedRooms.forEach(mr => {
-                const roomSub = mr.floor_name ? `Floor: ${mr.floor_name} · Seats ${mr.capacity || 8}` : `Seats ${mr.capacity || 8}`;
-                html += `
-                    <div class="suggestion-item" onmousedown="selectFloorNameSuggestion('${escapeJs(mr.name)}')">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 14px;">📍</span>
-                            <div>
-                                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">${escapeHtml(mr.name)}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Meeting Room (${escapeHtml(roomSub)})</div>
-                            </div>
-                        </div>
-                        <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px;">Use format</span>
-                    </div>
-                `;
-            });
-        }
+                    <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px;">Use format</span>
+                </div>
+            `;
+        });
 
         dropdown.innerHTML = html;
         dropdown.style.display = 'block';
