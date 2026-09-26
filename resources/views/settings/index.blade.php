@@ -1544,34 +1544,38 @@
         <form method="POST" action="{{ route('settings.meeting_rooms.store') }}" id="formAddRoom">
             @csrf
             <div class="modal-body">
-                <div class="field">
-                    <label>Branch / Site *</label>
-                    <select name="site_id" id="roomSiteId" required onchange="onRoomBranchChange()">
-                        <option value="">Select Branch / Site</option>
-                        @foreach ($sites as $s)
-                            <option value="{{ $s->id }}" data-code="{{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }}">{{ $s->name }} ({{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-grid" style="margin-top: 14px;">
+                <div class="form-grid" style="margin-top: 0;">
+                    <div class="field">
+                        <label>Branch / Site *</label>
+                        <select name="site_id" id="roomSiteId" required onchange="onRoomBranchChange()">
+                            <option value="">Select Branch / Site</option>
+                            @foreach ($sites as $s)
+                                <option value="{{ $s->id }}" data-code="{{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }}">{{ $s->name }} ({{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }})</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="field">
                         <label>Floor <span style="font-weight: 400; color: var(--text-muted);">(Optional)</span></label>
-                        <select name="floor_id" id="roomFloorId">
+                        <select name="floor_id" id="roomFloorId" onchange="updateRoomNameSample()">
                             <option value="">Select Floor</option>
                             @foreach ($floors as $fl)
                                 <option value="{{ $fl->id }}" data-site-id="{{ $fl->site_id }}" data-name="{{ $fl->name }}">{{ $fl->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="field">
-                        <label>Seating Capacity</label>
-                        <input type="number" name="capacity" id="roomCapacity" value="8" min="1" max="500">
-                    </div>
                 </div>
+
                 <div class="field" style="margin-top: 14px;">
                     <label>Room Name *</label>
-                    <input type="text" name="name" id="roomName" required placeholder="Branch code[unique for each branch]+Roomname+floorno.&code (e.g. BBT-Boardroom-FL02)">
-                    <div class="cell-sub" style="margin-top: 3px;">Unique room identifier across branches and floors</div>
+                    <input type="text" name="name" id="roomName" required placeholder="Branch code + Room name + floor no. & code">
+                    <div class="cell-sub" id="roomNameSample" style="margin-top: 4px; font-size: 11.5px; color: var(--text-muted);">
+                        Sample: <strong>Branch code[unique for each branch] + Roomname + floorno.&code</strong> (e.g. <span id="sampleCodePreview">BBT-Boardroom-FL02</span>)
+                    </div>
+                </div>
+
+                <div class="field" style="margin-top: 14px;">
+                    <label>Seating Capacity</label>
+                    <input type="number" name="capacity" id="roomCapacity" value="8" min="1" max="500">
                 </div>
             </div>
             <div class="modal-foot">
@@ -1862,6 +1866,27 @@
     window.settingsMeetingRooms = @json($meetingRooms);
     window.settingsFloors = @json($floors);
 
+    // Update sample preview text below Room Name
+    function updateRoomNameSample() {
+        const siteSelect = document.getElementById('roomSiteId');
+        const selectedOption = siteSelect ? siteSelect.options[siteSelect.selectedIndex] : null;
+        const siteCode = (selectedOption && selectedOption.value) ? (selectedOption.getAttribute('data-code') || 'BBT') : 'BBT';
+
+        const floorSelect = document.getElementById('roomFloorId');
+        const floorOption = (floorSelect && floorSelect.selectedIndex > 0) ? floorSelect.options[floorSelect.selectedIndex] : null;
+        let floorPart = 'FL02';
+        if (floorOption && floorOption.value) {
+            const rawFloorName = floorOption.getAttribute('data-name') || floorOption.textContent;
+            const matchNum = rawFloorName.match(/\d+/);
+            floorPart = matchNum ? 'FL' + matchNum[0].padStart(2, '0') : rawFloorName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        }
+
+        const previewSpan = document.getElementById('sampleCodePreview');
+        if (previewSpan) {
+            previewSpan.textContent = `${siteCode}-Boardroom-${floorPart}`;
+        }
+    }
+
     // Meeting Room Branch onchange handler
     function onRoomBranchChange() {
         const siteSelect = document.getElementById('roomSiteId');
@@ -1898,6 +1923,8 @@
             });
             floorSelect.value = '';
         }
+
+        updateRoomNameSample();
     }
 
     // Interactive Tag Input for Floor Areas
