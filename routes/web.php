@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/visitors/check-in', [CheckInController::class, 'create'])->name('visitors.checkin');
     Route::post('/visitors/check-in', [CheckInController::class, 'store'])->name('visitors.checkin.store');
     Route::post('/visits/{visit}/checkout', [CheckInController::class, 'checkout'])->name('visits.checkout');
+    Route::post('/visits/{visit}/watchlist', [VisitorLogController::class, 'addToWatchlist'])->name('visits.watchlist');
 
     // Pre-Registration Routes
     Route::get('/pre-registrations', [PreRegistrationController::class, 'index'])->name('pre_registrations.index');

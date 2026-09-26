@@ -6,6 +6,8 @@ use App\Models\Site;
 use App\Models\Visit;
 use App\Models\VisitPurpose;
 use App\Models\Scopes\TenantScope;
+use App\Models\WatchlistEntry;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,7 +26,21 @@ class VisitorLogController extends Controller
         $sites = Site::where('status', 'active')->orderBy('name')->get();
         $purposes = VisitPurpose::where('status', 'active')->orderBy('name')->get();
 
-        return view('visitors.index', compact('visits', 'sites', 'purposes'));
+        $stats = [
+            'total_visitors' => Visit::count(),
+            'checked_in' => Visit::where('status', 'checked_in')->count(),
+            'expected' => Visit::where('status', 'expected')->count(),
+            'overstayed' => Visit::where(function ($q) {
+                $q->where('status', 'overstayed')
+                  ->orWhere(function ($oq) {
+                      $oq->where('status', 'checked_in')
+                         ->whereNotNull('scheduled_end_at')
+                         ->where('scheduled_end_at', '<', now());
+                  });
+            })->count(),
+        ];
+
+        return view('visitors.index', compact('visits', 'sites', 'purposes', 'stats'));
     }
 
     /**
@@ -87,8 +103,17 @@ class VisitorLogController extends Controller
      */
     private function buildFilterQuery(Request $request)
     {
-        $query = Visit::with(['visitor', 'site', 'hostEmployee', 'department', 'purpose', 'visitorType', 'badges'])
-            ->orderBy('check_in_at', 'desc');
+        $query = Visit::with([
+            'visitor.nationality',
+            'visitor.idType',
+            'site',
+            'hostEmployee.department',
+            'department',
+            'purpose',
+            'visitorType',
+            'badges',
+            'invitation',
+        ])->orderBy('check_in_at', 'desc');
 
         // Search Filter (Visitor name, phone, company, ID, or host name)
         if ($request->filled('search')) {
@@ -150,5 +175,31 @@ class VisitorLogController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * Flag a visitor and add them to the security watchlist.
+     */
+    public function addToWatchlist(Visit $visit): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+        $visitor = $visit->visitor;
+
+        if ($visitor) {
+            WatchlistEntry::firstOrCreate(
+                [
+                    'organization_id' => $orgId,
+                    'name' => $visitor->full_name,
+                ],
+                [
+                    'id_type_id' => $visitor->id_type_id,
+                    'reason' => 'Flagged from visitor log by security officer',
+                    'severity' => 'warning',
+                    'status' => 'active',
+                ]
+            );
+        }
+
+        return back()->with('success', 'Visitor "' . ($visitor->full_name ?? 'Visitor') . '" has been added to the security watchlist.');
     }
 }
