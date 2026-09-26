@@ -1664,11 +1664,15 @@
                 </div>
                 <div class="field">
                     <label>Floor Name *</label>
-                    <input type="text" name="name" id="floorName" required placeholder="e.g. Floor 6" oninput="validateFloorName()" onchange="validateFloorName()">
+                    <div style="position: relative;">
+                        <input type="text" name="name" id="floorName" required placeholder="e.g. Floor 6" autocomplete="off" oninput="onFloorNameInput()" onfocus="showFloorNameSuggestions()" onchange="validateFloorName()">
+                        <div id="floorNameSuggestions" class="suggestions-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60; background: var(--surface); max-height: 220px; overflow-y: auto;"></div>
+                    </div>
                     <div id="floorNameError" style="display: none; color: #ef4444; font-size: 12px; margin-top: 5px; font-weight: 500;">
                         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <span id="floorNameErrorMsg">This floor already exists for this branch.</span>
                     </div>
+                    <div class="cell-sub" style="margin-top: 2px;">Click or type to view existing floors & rooms in this branch for reference</div>
                 </div>
                 <div class="field">
                     <label>Description</label>
@@ -1980,6 +1984,119 @@
         }
     }
 
+    // Autocomplete Suggestions for Floor Name
+    function showFloorNameSuggestions(filterText = null) {
+        const input = document.getElementById('floorName');
+        const dropdown = document.getElementById('floorNameSuggestions');
+        const siteSelect = document.getElementById('floorSiteId');
+        if (!input || !dropdown || !siteSelect) return;
+
+        const siteId = siteSelect.value;
+        const siteName = siteSelect.options[siteSelect.selectedIndex]?.textContent || 'Selected Branch';
+        const query = (filterText !== null ? filterText : input.value).trim().toLowerCase();
+
+        // 1. Existing Floors in this site
+        const branchFloors = (window.settingsFloors || []).filter(f => {
+            const fSiteId = f.site_id || (f.building ? f.building.site_id : '');
+            return String(fSiteId) === String(siteId);
+        });
+
+        // 2. Existing Meeting Rooms in this site
+        const branchRooms = (window.settingsMeetingRooms || []).filter(mr => {
+            return String(mr.site_id) === String(siteId);
+        });
+
+        const matchedFloors = branchFloors.filter(f => !query || String(f.name || '').toLowerCase().includes(query));
+        const matchedRooms = branchRooms.filter(mr => !query || String(mr.name || '').toLowerCase().includes(query));
+
+        if (matchedFloors.length === 0 && matchedRooms.length === 0) {
+            if (!query) {
+                dropdown.innerHTML = `
+                    <div style="padding: 10px 14px; font-size: 12px; color: var(--text-muted); text-align: center;">
+                        No floors or rooms created yet in <strong>${escapeHtml(siteName)}</strong>.<br>You can name this floor e.g. <em>Floor 1</em> or <em>Level 1</em>.
+                    </div>
+                `;
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+                dropdown.innerHTML = '';
+            }
+            return;
+        }
+
+        let html = '';
+        html += `<div style="padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); background: var(--surface-2); border-bottom: 1px solid var(--border);">Format references in ${escapeHtml(siteName)}</div>`;
+
+        if (matchedFloors.length > 0) {
+            matchedFloors.forEach(f => {
+                const areaCount = (f.areas && f.areas.length) ? `${f.areas.length} areas` : (f.areas_text ? `${f.areas_text.split(',').length} areas` : 'No areas');
+                html += `
+                    <div class="suggestion-item" onmousedown="selectFloorNameSuggestion('${escapeJs(f.name)}')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px;">🏢</span>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">${escapeHtml(f.name)}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Existing Floor (${escapeHtml(areaCount)})</div>
+                            </div>
+                        </div>
+                        <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px;">Use format</span>
+                    </div>
+                `;
+            });
+        }
+
+        if (matchedRooms.length > 0) {
+            matchedRooms.forEach(mr => {
+                const roomSub = mr.floor_name ? `Floor: ${mr.floor_name} · Seats ${mr.capacity || 8}` : `Seats ${mr.capacity || 8}`;
+                html += `
+                    <div class="suggestion-item" onmousedown="selectFloorNameSuggestion('${escapeJs(mr.name)}')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px;">📍</span>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">${escapeHtml(mr.name)}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Meeting Room (${escapeHtml(roomSub)})</div>
+                            </div>
+                        </div>
+                        <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px;">Use format</span>
+                    </div>
+                `;
+            });
+        }
+
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+    }
+
+    function hideFloorNameSuggestions() {
+        const dropdown = document.getElementById('floorNameSuggestions');
+        if (dropdown) dropdown.style.display = 'none';
+    }
+
+    function onFloorNameInput() {
+        const input = document.getElementById('floorName');
+        if (input) {
+            showFloorNameSuggestions(input.value);
+        }
+        validateFloorName();
+    }
+
+    function selectFloorNameSuggestion(value) {
+        const input = document.getElementById('floorName');
+        if (!input) return;
+        input.value = value;
+        hideFloorNameSuggestions();
+        validateFloorName();
+        input.focus();
+        // Select trailing digits for quick editing (e.g. "Floor 2" -> selects "2")
+        const match = value.match(/\d+$/);
+        if (match) {
+            const start = value.lastIndexOf(match[0]);
+            input.setSelectionRange(start, value.length);
+        } else {
+            input.setSelectionRange(value.length, value.length);
+        }
+    }
+
     function renderFloorTags() {
         const listContainer = document.getElementById('floorTagsList');
         const hiddenInput = document.getElementById('floorAreas');
@@ -2063,6 +2180,11 @@
         }
         renderFloorTags();
         validateFloorName();
+
+        const floorDropdown = document.getElementById('floorNameSuggestions');
+        if (floorDropdown && floorDropdown.style.display !== 'none') {
+            showFloorNameSuggestions();
+        }
     }
 
     function escapeHtml(str) {
@@ -2086,6 +2208,7 @@
         if (siteId) {
             document.getElementById('floorSiteId').value = siteId;
         }
+        hideFloorNameSuggestions();
         validateFloorName();
         openModal('modalAddFloor');
     }
@@ -2110,6 +2233,7 @@
             currentFloorTags = fl.areas_text.split(',').map(s => s.trim()).filter(Boolean);
         }
         renderFloorTags();
+        hideFloorNameSuggestions();
         validateFloorName();
 
         openModal('modalAddFloor');
@@ -2145,6 +2269,16 @@
             });
         }
 
+        // Setup Floor Name input key listeners
+        const floorNameInput = document.getElementById('floorName');
+        if (floorNameInput) {
+            floorNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    hideFloorNameSuggestions();
+                }
+            });
+        }
+
         // Prevent floorForm submit if floor name is duplicate
         const floorForm = document.getElementById('floorForm');
         if (floorForm) {
@@ -2162,6 +2296,12 @@
             const dropdown = document.getElementById('floorRoomSuggestions');
             if (dropdown && wrapper && !wrapper.contains(e.target) && !dropdown.contains(e.target)) {
                 hideFloorRoomSuggestions();
+            }
+
+            const floorNameInput = document.getElementById('floorName');
+            const floorNameDropdown = document.getElementById('floorNameSuggestions');
+            if (floorNameDropdown && floorNameInput && !floorNameInput.contains(e.target) && !floorNameDropdown.contains(e.target)) {
+                hideFloorNameSuggestions();
             }
         });
     });
