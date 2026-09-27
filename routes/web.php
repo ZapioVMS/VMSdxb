@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LookupController;
@@ -43,6 +44,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/pre-registrations/{invitation}/cancel', [PreRegistrationController::class, 'cancel'])->name('pre_registrations.cancel');
     Route::post('/pre-registrations/{invitation}/resend', [PreRegistrationController::class, 'resend'])->name('pre_registrations.resend');
     Route::get('/pre-registrations/export', [PreRegistrationController::class, 'export'])->name('pre_registrations.export');
+
+    // Deliveries Routes
+    Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
+    Route::post('/deliveries', [DeliveryController::class, 'store'])->name('deliveries.store');
+    Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update'])->name('deliveries.update');
+    Route::post('/deliveries/{delivery}/collect', [DeliveryController::class, 'collect'])->name('deliveries.collect');
+    Route::post('/deliveries/{delivery}/notify', [DeliveryController::class, 'notify'])->name('deliveries.notify');
+    Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy'])->name('deliveries.destroy');
+    Route::get('/deliveries/export', [DeliveryController::class, 'export'])->name('deliveries.export');
 
     // Unified Settings Hub & Preferences
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');

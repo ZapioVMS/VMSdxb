@@ -4,7 +4,7 @@
     $isVisitorLog = $current === 'visitors' || (request()->routeIs('visitors.index') && !request()->routeIs('visitors.checkin'));
     $isCheckin = $current === 'checkin' || request()->routeIs('visitors.checkin');
     $isPreReg = $current === 'pre_registrations' || request()->routeIs('pre_registrations.*');
-    $isDeliveries = $current === 'deliveries';
+    $isDeliveries = $current === 'deliveries' || request()->routeIs('deliveries.*');
     $isApprovals = $current === 'approvals';
     $isWatchlist = $current === 'watchlist';
     $isEvacuation = $current === 'evacuation';
@@ -45,7 +45,7 @@
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
             <span>Pre-Registration</span>
         </a>
-        <a href="{{ route('visitors.index') }}" class="navitem {{ $isDeliveries ? 'active' : '' }}">
+        <a href="{{ route('deliveries.index') }}" class="navitem {{ $isDeliveries ? 'active' : '' }}">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8v8l9 5 9-5V8l-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
             <span>Deliveries</span>
         </a>
