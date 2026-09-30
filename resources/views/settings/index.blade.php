@@ -1873,6 +1873,7 @@
     // Master data in JS
     window.settingsMeetingRooms = @json($meetingRooms);
     window.settingsFloors = @json($floors);
+    window.settingsGeneralAreas = @json($generalAreas);
 
     // Update sample preview text below Room Name
     function updateRoomNameSample() {
@@ -2120,12 +2121,24 @@
         if (!dropdown) return;
 
         const q = (query || '').toLowerCase();
-        // Filter meeting rooms for this branch not already tagged
-        const matches = (window.settingsMeetingRooms || []).filter(mr => {
+        
+        // 1. Filter meeting rooms for this branch not already tagged
+        const mrMatches = (window.settingsMeetingRooms || []).filter(mr => {
             if (siteId && String(mr.site_id) !== String(siteId)) return false;
             if (currentFloorTags.some(t => t.toLowerCase() === String(mr.name).toLowerCase())) return false;
             return !q || String(mr.name).toLowerCase().includes(q);
-        });
+        }).map(mr => ({ type: 'meeting_room', name: mr.name, seats: mr.capacity }));
+
+        // 2. Filter general areas not already tagged
+        const areaMatches = (window.settingsGeneralAreas || []).filter(areaName => {
+            if (currentFloorTags.some(t => t.toLowerCase() === String(areaName).toLowerCase())) return false;
+            // Only suggest if it's not also a meeting room name to avoid duplicates
+            if ((window.settingsMeetingRooms || []).some(mr => String(mr.name).toLowerCase() === String(areaName).toLowerCase())) return false;
+            return !q || String(areaName).toLowerCase().includes(q);
+        }).map(areaName => ({ type: 'area', name: areaName, seats: null }));
+
+        // Merge and show up to 10 suggestions
+        const matches = [...mrMatches, ...areaMatches].slice(0, 10);
 
         if (matches.length === 0) {
             dropdown.style.display = 'none';
@@ -2133,12 +2146,16 @@
             return;
         }
 
-        dropdown.innerHTML = matches.map(mr => `
-            <div class="suggestion-item" onclick="addFloorTag('${escapeJs(mr.name)}')">
-                <span>📍 <strong>${escapeHtml(mr.name)}</strong> <span style="color: var(--text-muted); font-size: 11px;">(Seats ${mr.capacity || 8})</span></span>
+        dropdown.innerHTML = matches.map(item => {
+            const isMr = item.type === 'meeting_room';
+            const iconHtml = isMr ? `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2" style="width:13px; height:13px; vertical-align:-2px; margin-right:4px;"><path d="M16 21v-2a4 4 0 00-8 0v2"/><circle cx="12" cy="7" r="4"/></svg>` : `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" style="width:13px; height:13px; vertical-align:-2px; margin-right:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+            return `
+            <div class="suggestion-item" onclick="addFloorTag('${escapeJs(item.name)}')">
+                <span>${iconHtml}<strong>${escapeHtml(item.name)}</strong> <span style="color: var(--text-muted); font-size: 11px;">${isMr ? `(Seats ${item.seats || 8})` : '(General Area)'}</span></span>
                 <span style="font-size: 11.5px; color: var(--accent); font-weight: 600;">+ Add</span>
             </div>
-        `).join('');
+            `;
+        }).join('');
         dropdown.style.display = 'block';
     }
 

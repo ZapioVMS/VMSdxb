@@ -115,4 +115,15 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/lookups/floors', [LookupController::class, 'storeFloor'])->name('lookups.floors.store');
     Route::put('/lookups/floors/{floor}', [LookupController::class, 'updateFloor'])->name('lookups.floors.update');
+
+    // Users & Roles Management
+    Route::get('/users', [\App\Http\Controllers\UsersController::class, 'index'])->name('users.index');
+    Route::post('/users', [\App\Http\Controllers\UsersController::class, 'store'])->name('users.store');
+    Route::put('/users/{user}', [\App\Http\Controllers\UsersController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [\App\Http\Controllers\UsersController::class, 'destroy'])->name('users.destroy');
+    Route::put('/users/roles/{role}', [\App\Http\Controllers\UsersController::class, 'updateRole'])->name('users.roles.update');
+    
+    // Approvals Management
+    Route::get('/approvals', [\App\Http\Controllers\ApprovalsController::class, 'index'])->name('approvals.index');
+    Route::post('/approvals/{approval}/action', [\App\Http\Controllers\ApprovalsController::class, 'action'])->name('approvals.action');
 });

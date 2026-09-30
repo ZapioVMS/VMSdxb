@@ -191,6 +191,7 @@ class SettingsController extends Controller
         $shifts = Shift::orderBy('name')->get();
         $floors = Floor::with(['building', 'areas'])->orderBy('name')->get();
         $buildings = Building::orderBy('name')->get();
+        $generalAreas = Area::where('organization_id', $orgId)->select('name')->distinct()->orderBy('name')->pluck('name')->toArray();
         $employees = Employee::where('status', 'active')->orderBy('first_name')->get();
         $kioskDevices = KioskDevice::with('site')->get();
 
@@ -216,6 +217,7 @@ class SettingsController extends Controller
             'shifts',
             'floors',
             'buildings',
+            'generalAreas',
             'employees',
             'kioskDevices',
             'activeTab'
@@ -766,3 +768,5 @@ class SettingsController extends Controller
         return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Floor removed.');
     }
 }
+
+

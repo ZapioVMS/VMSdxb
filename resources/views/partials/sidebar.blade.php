@@ -5,14 +5,14 @@
     $isCheckin = $current === 'checkin' || request()->routeIs('visitors.checkin');
     $isPreReg = $current === 'pre_registrations' || request()->routeIs('pre_registrations.*');
     $isDeliveries = $current === 'deliveries' || request()->routeIs('deliveries.*');
-    $isApprovals = $current === 'approvals';
+    $isApprovals = $current === 'approvals' || request()->routeIs('approvals.*');
     $isWatchlist = $current === 'watchlist';
     $isEvacuation = $current === 'evacuation';
     $isBadges = $current === 'badges';
     $isAgreements = $current === 'agreements';
     $isReports = $current === 'reports';
     $isEmployees = $current === 'employees' || request()->routeIs('employees.*');
-    $isUsers = $current === 'users';
+    $isUsers = $current === 'users' || request()->routeIs('users.*');
     $isNotifications = $current === 'notifications';
     $isSettings = $current === 'settings' || request()->routeIs('settings.*') || request()->routeIs('lookups.*') || request()->routeIs('sites.*') || request()->routeIs('departments.*');
 @endphp
@@ -49,10 +49,9 @@
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8v8l9 5 9-5V8l-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
             <span>Deliveries</span>
         </a>
-        <a href="{{ route('dashboard') }}" class="navitem {{ $isApprovals ? 'active' : '' }}">
+        <a href="{{ route('approvals.index') }}" class="navitem {{ $isApprovals ? 'active' : '' }}">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4.5"/></svg>
             <span>Approvals</span>
-            <span class="nbadge" style="margin-inline-start: auto; background: var(--critical, #d03b3b); color: #ffffff; font-size: 10.5px; font-weight: 700; border-radius: 99px; padding: 1px 6px; min-width: 16px; text-align: center;">1</span>
         </a>
 
         <!-- MANAGE -->
@@ -84,7 +83,7 @@
 
         <!-- SYSTEM -->
         <div class="navlabel">SYSTEM</div>
-        <a href="{{ url('/settings?tab=security') }}" class="navitem {{ $isUsers ? 'active' : '' }}">
+        <a href="{{ route('users.index') }}" class="navitem {{ $isUsers ? 'active' : '' }}">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 3-6.3 6.5-6.3S15.5 16.4 15.5 20"/><circle cx="18" cy="15" r="2.1"/><path d="M18 11.8v1M18 17.2v1M15.7 15h1M19.3 15h1M16.4 13.3l.7.7M18.9 15.7l.7.7M16.4 16.7l.7-.7M18.9 14.3l.7-.7"/></svg>
             <span>Users & Roles</span>
         </a>
