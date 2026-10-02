@@ -960,7 +960,7 @@
                                     </div>
                                     <div>
                                         <div class="cell-sub">Visiting hours</div>
-                                        <div style="font-weight: 700;">08:00 AM–07:00 PM</div>
+                                        <div style="font-weight: 700;">{{ is_array($site->visiting_hours) ? implode('-', $site->visiting_hours) : ($site->visiting_hours ?: '08:00 AM-07:00 PM') }}</div>
                                     </div>
                                     <div>
                                         <div class="cell-sub">on-site now</div>
