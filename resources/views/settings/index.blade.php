@@ -1872,13 +1872,8 @@
                 </div>
                 <div class="field">
                     <label>Areas / Rooms</label>
-                    <input type="hidden" name="areas" id="floorAreas">
-                    <div id="floorTagsWrapper" class="tag-input-container" onclick="document.getElementById('floorTagInput').focus()">
-                        <div id="floorTagsList" style="display: contents;"></div>
-                        <input type="text" id="floorTagInput" placeholder="Type area or select meeting room, press Enter..." autocomplete="off">
-                    </div>
-                    <div id="floorRoomSuggestions" class="suggestions-dropdown" style="display: none;"></div>
-                    <div class="cell-sub" style="margin-top: 4px;">Comma-separated list, e.g. Reception, Meeting Room A, Open Office</div>
+                    <input type="text" name="areas" id="floorAreasInput" placeholder="e.g. Reception, Meeting Room A, Open Office">
+                    <div class="cell-sub" style="margin-top: 4px;">Comma-separated list</div>
                 </div>
             </div>
             <div class="modal-foot">
