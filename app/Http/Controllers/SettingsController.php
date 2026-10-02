@@ -126,7 +126,7 @@ class SettingsController extends Controller
                 'floor_id' => $r->floor_id,
                 'floor_name' => $r->floor?->name ?? '',
                 'capacity' => $r->capacity ?? 8,
-                'bookings' => 0,
+                'bookings' => \App\Models\Invitation::where('meeting_room', $r->name)->count(),
             ])->toArray();
         } else {
             $meetingRooms = $settingsRaw['meeting_rooms'] ?? [
@@ -525,14 +525,12 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
         ]);
 
         if (Schema::hasTable('delivery_carriers')) {
             DeliveryCarrier::create([
                 'organization_id' => $orgId,
                 'name' => $validated['name'],
-                'code' => strtoupper(trim($validated['code'])),
             ]);
         } else {
             $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'delivery_carriers']);
@@ -540,7 +538,6 @@ class SettingsController extends Controller
             $carriers[] = [
                 'id' => 'carrier_' . time(),
                 'name' => $validated['name'],
-                'code' => strtoupper(trim($validated['code'])),
                 'deliveries' => 0,
             ];
             $setting->value = $carriers;
@@ -548,6 +545,40 @@ class SettingsController extends Controller
         }
 
         return redirect()->route('settings.index', ['tab' => 'deliveryCarriers'])->with('success', 'Delivery Carrier added.');
+    }
+
+    /**
+     * Update Delivery Carrier.
+     */
+    public function updateCarrier(Request $request, string $id): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        if (Schema::hasTable('delivery_carriers')) {
+            $carrier = DeliveryCarrier::where('id', $id)->first();
+            if ($carrier) {
+                $carrier->update(['name' => $validated['name']]);
+            }
+        } else {
+            $setting = OrganizationSetting::where('organization_id', $orgId)->where('key', 'delivery_carriers')->first();
+            if ($setting && is_array($setting->value)) {
+                $carriers = $setting->value;
+                foreach ($carriers as &$c) {
+                    if ((string)($c['id'] ?? '') === (string)$id) {
+                        $c['name'] = $validated['name'];
+                        break;
+                    }
+                }
+                $setting->value = $carriers;
+                $setting->save();
+            }
+        }
+
+        return redirect()->route('settings.index', ['tab' => 'deliveryCarriers'])->with('success', 'Delivery Carrier updated.');
     }
 
     /**
@@ -577,14 +608,12 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:500'],
         ]);
 
         if (Schema::hasTable('package_sizes')) {
             PackageSize::create([
                 'organization_id' => $orgId,
                 'name' => $validated['name'],
-                'description' => $validated['description'] ?? null,
             ]);
         } else {
             $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'package_sizes']);
@@ -592,13 +621,44 @@ class SettingsController extends Controller
             $sizes[] = [
                 'id' => 'size_' . time(),
                 'name' => $validated['name'],
-                'description' => $validated['description'] ?? '',
+                'packages' => 0,
             ];
             $setting->value = $sizes;
             $setting->save();
         }
 
         return redirect()->route('settings.index', ['tab' => 'packageSizes'])->with('success', 'Package Size added.');
+    }
+
+    public function updatePackageSize(Request $request, string $id): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        if (Schema::hasTable('package_sizes')) {
+            $size = PackageSize::where('id', $id)->first();
+            if ($size) {
+                $size->update(['name' => $validated['name']]);
+            }
+        } else {
+            $setting = OrganizationSetting::where('organization_id', $orgId)->where('key', 'package_sizes')->first();
+            if ($setting && is_array($setting->value)) {
+                $sizes = $setting->value;
+                foreach ($sizes as &$s) {
+                    if ((string)($s['id'] ?? '') === (string)$id) {
+                        $s['name'] = $validated['name'];
+                        break;
+                    }
+                }
+                $setting->value = $sizes;
+                $setting->save();
+            }
+        }
+
+        return redirect()->route('settings.index', ['tab' => 'packageSizes'])->with('success', 'Package Size updated.');
     }
 
     /**

@@ -66,8 +66,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/settings/meeting-rooms', [SettingsController::class, 'storeMeetingRoom'])->name('settings.meeting_rooms.store');
     Route::delete('/settings/meeting-rooms/{id}', [SettingsController::class, 'destroyMeetingRoom'])->name('settings.meeting_rooms.destroy');
     Route::post('/settings/delivery-carriers', [SettingsController::class, 'storeCarrier'])->name('settings.carriers.store');
+    Route::put('/settings/delivery-carriers/{id}', [SettingsController::class, 'updateCarrier'])->name('settings.carriers.update');
     Route::delete('/settings/delivery-carriers/{id}', [SettingsController::class, 'destroyCarrier'])->name('settings.carriers.destroy');
     Route::post('/settings/package-sizes', [SettingsController::class, 'storePackageSize'])->name('settings.package_sizes.store');
+    Route::put('/settings/package-sizes/{id}', [SettingsController::class, 'updatePackageSize'])->name('settings.package_sizes.update');
     Route::delete('/settings/package-sizes/{id}', [SettingsController::class, 'destroyPackageSize'])->name('settings.package_sizes.destroy');
     Route::post('/settings/floors', [SettingsController::class, 'storeFloor'])->name('settings.floors.store');
     Route::put('/settings/floors/{id}', [SettingsController::class, 'updateFloor'])->name('settings.floors.update');

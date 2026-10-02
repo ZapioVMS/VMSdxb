@@ -1110,13 +1110,22 @@
                                         <div class="avatar-sq icon-tint-s3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
                                         <div>
                                             <div style="font-weight: 700; font-size: 15px;">{{ $room['name'] }}</div>
-                                            <div class="cell-sub" style="margin-top: 2px;">{{ $room['site_name'] ?? 'Main Office' }}@if(!empty($room['floor_name'])) · {{ $room['floor_name'] }}@endif · Seats {{ $room['capacity'] ?? 8 }} · {{ $room['bookings'] ?? 0 }} bookings</div>
+                                            <div class="cell-sub" style="margin-top: 2px;">{{ $room['site_name'] ?? 'Main Office' }} • {{ $room['capacity'] ?? 8 }} people • {{ $room['bookings'] ?? 0 }} bookings</div>
                                         </div>
                                     </div>
-                                    <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                                    </form>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <button type="button" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                        <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');" style="margin: 0;">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+                                    <button type="button" class="btn btn-sm" style="width: 100%; border-radius: 6px;" onclick="openScheduleModal({{ json_encode($room) }})">
+                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                                        Schedule
+                                    </button>
                                 </div>
                             </div>
                         @endforeach
@@ -1141,13 +1150,18 @@
                                         <div class="avatar-sq icon-tint-s4"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg></div>
                                         <div>
                                             <div style="font-weight: 700; font-size: 14.5px;">{{ $c['name'] }}</div>
-                                            <div class="cell-sub" style="margin-top: 2px;">Code: {{ $c['code'] ?? '' }} · {{ $c['deliveries'] ?? 0 }} packages logged</div>
+                                            <div class="cell-sub" style="margin-top: 2px;">{{ $c['deliveries'] ?? 0 }} packages logged</div>
                                         </div>
                                     </div>
-                                    <form method="POST" action="{{ route('settings.carriers.destroy', $c['id']) }}" onsubmit="return confirm('Remove carrier?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                                    </form>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button type="button" class="btn btn-sm btn-ghost" onclick="openEditCarrierModal('{{ $c['id'] }}', '{{ addslashes($c['name']) }}')" title="Edit">
+                                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                        </button>
+                                        <form method="POST" action="{{ route('settings.carriers.destroy', $c['id']) }}" onsubmit="return confirm('Remove carrier?');" style="margin:0;">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-ghost" title="Delete"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -1172,15 +1186,18 @@
                                         <div class="avatar-sq icon-tint-s5"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m21 21-6-6m6 6v-4.8m0 4.8h-4.8M3 16.2V21m0 0h4.8M3 21l6-6M21 7.8V3m0 0h-4.8M21 3l-6 6M3 7.8V3m0 0h4.8M3 3l6 6"/></svg></div>
                                         <div>
                                             <div style="font-weight: 700; font-size: 14.5px;">{{ $s['name'] }}</div>
-                                            @if (!empty($s['description']))
-                                                <div class="cell-sub" style="margin-top: 2px;">{{ $s['description'] }}</div>
-                                            @endif
+                                            <div class="cell-sub" style="margin-top: 2px;">{{ $s['packages'] ?? 0 }} packages logged</div>
                                         </div>
                                     </div>
-                                    <form method="POST" action="{{ route('settings.package_sizes.destroy', $s['id']) }}" onsubmit="return confirm('Remove size?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                                    </form>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button type="button" class="btn btn-sm btn-ghost" onclick="openEditPackageSizeModal('{{ $s['id'] }}', '{{ addslashes($s['name']) }}')" title="Edit">
+                                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/></svg>
+                                        </button>
+                                        <form method="POST" action="{{ route('settings.package_sizes.destroy', $s['id']) }}" onsubmit="return confirm('Remove package size?');" style="margin:0;">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-ghost" title="Delete"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -1681,10 +1698,48 @@
     </div>
 </div>
 
+    <!-- Meeting Room Schedule Modal -->
+    <div id="modalScheduleRoom" class="modal-root">
+        <div class="modal-backdrop" onclick="closeModal('modalScheduleRoom')"></div>
+        <div class="modal-panel" style="max-width: 500px;">
+            <div class="modal-head">
+                <h3 id="modalScheduleTitle">Boardroom — Schedule</h3>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalScheduleRoom')">✕</button>
+            </div>
+            <div class="modal-body" style="padding-top: 16px;">
+                <div id="modalScheduleSub" class="cell-sub" style="margin-bottom: 24px; font-size: 13px;">Abu Dhabi Corniche Office • 20 people</div>
+                
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="changeScheduleDate(-1)" style="padding: 4px;">
+                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: var(--text-muted);"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                        <span id="scheduleDateDisplay">Friday, 2 October</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="changeScheduleDate(1)" style="padding: 4px;">
+                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+
+                <div style="text-align: center; color: var(--text-muted); padding: 20px 0 40px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 12px;"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    <div>No bookings on this day.</div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn" onclick="closeModal('modalScheduleRoom')">Close</button>
+                <button type="button" class="btn btn-primary" onclick="proceedToBookRoom()" style="background: var(--accent); border-color: var(--accent);">+ Book This Room</button>
+            </div>
+        </div>
+    </div>
+
+    @include('partials.invite_modal')
+
 <!-- 6. Add Meeting Room Modal -->
 <div id="modalAddRoom" class="modal-root">
     <div class="modal-backdrop" onclick="closeModal('modalAddRoom')"></div>
-    <div class="modal-panel" style="max-width: 480px;">
+    <div class="modal-panel" style="max-width: 500px;">
         <div class="modal-head">
             <h3>Add Meeting Room</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddRoom')">✕</button>
@@ -1692,43 +1747,38 @@
         <form method="POST" action="{{ route('settings.meeting_rooms.store') }}" id="formAddRoom">
             @csrf
             <div class="modal-body">
-                <div class="form-grid" style="margin-top: 0;">
+                <div class="field">
+                    <label>Room Name</label>
+                    <input type="text" name="name" id="roomName" required placeholder="e.g. Meeting Room C">
+                </div>
+                <div class="form-grid" style="margin-top: 16px;">
                     <div class="field">
-                        <label>Branch / Site *</label>
-                        <select name="site_id" id="roomSiteId" required onchange="onRoomBranchChange()">
-                            <option value="">Select Branch / Site</option>
+                        <label>Branch</label>
+                        <select name="site_id" id="roomSiteId" required>
                             @foreach ($sites as $s)
-                                <option value="{{ $s->id }}" data-code="{{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }}">{{ $s->name }} ({{ $s->code ?? strtoupper(substr($s->name, 0, 3)) }})</option>
+                                <option value="{{ $s->id }}">{{ $s->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="field">
-                        <label>Floor <span style="font-weight: 400; color: var(--text-muted);">(Optional)</span></label>
-                        <select name="floor_id" id="roomFloorId" onchange="updateRoomNameSample()">
-                            <option value="">Select Floor</option>
-                            @foreach ($floors as $fl)
-                                <option value="{{ $fl->id }}" data-site-id="{{ $fl->site_id }}" data-name="{{ $fl->name }}">{{ $fl->name }}</option>
-                            @endforeach
+                        <label>Capacity</label>
+                        <select name="capacity" id="roomCapacity" required>
+                            <option value="2">2 people</option>
+                            <option value="4">4 people</option>
+                            <option value="6">6 people</option>
+                            <option value="8" selected>8 people</option>
+                            <option value="10">10 people</option>
+                            <option value="15">15 people</option>
+                            <option value="20">20 people</option>
+                            <option value="30">30 people</option>
+                            <option value="50">50 people</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="field" style="margin-top: 14px;">
-                    <label>Room Name *</label>
-                    <input type="text" name="name" id="roomName" required placeholder="Branch code + Room name + floor no. & code">
-                    <div class="cell-sub" id="roomNameSample" style="margin-top: 4px; font-size: 11.5px; color: var(--text-muted);">
-                        Sample: <strong>Branch code[unique for each branch] + Roomname + floorno.&code</strong> (e.g. <span id="sampleCodePreview">BBT-Boardroom-FL02</span>)
-                    </div>
-                </div>
-
-                <div class="field" style="margin-top: 14px;">
-                    <label>Seating Capacity</label>
-                    <input type="number" name="capacity" id="roomCapacity" value="8" min="1" max="500">
                 </div>
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddRoom')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Room</button>
+                <button type="submit" class="btn btn-primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;"><path d="M20 6L9 17l-5-5"/></svg> Save</button>
             </div>
         </form>
     </div>
@@ -1749,10 +1799,7 @@
                     <label>Carrier Name *</label>
                     <input type="text" name="name" required placeholder="e.g. UPS Express">
                 </div>
-                <div class="field" style="margin-top: 14px;">
-                    <label>Tracking Code Prefix *</label>
-                    <input type="text" name="code" required placeholder="e.g. UPS">
-                </div>
+                
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddCarrier')">Cancel</button>
@@ -1777,10 +1824,7 @@
                     <label>Package Size Name *</label>
                     <input type="text" name="name" required placeholder="e.g. Small Box">
                 </div>
-                <div class="field" style="margin-top: 14px;">
-                    <label>Description</label>
-                    <input type="text" name="description" placeholder="e.g. Up to 30x20x15 cm (fits in small locker)">
-                </div>
+                
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddSize')">Cancel</button>
@@ -1834,7 +1878,7 @@
                         <input type="text" id="floorTagInput" placeholder="Type area or select meeting room, press Enter..." autocomplete="off">
                     </div>
                     <div id="floorRoomSuggestions" class="suggestions-dropdown" style="display: none;"></div>
-                    <div class="cell-sub" style="margin-top: 4px;">Press Enter to add custom area, or pick from branch meeting rooms</div>
+                    <div class="cell-sub" style="margin-top: 4px;">Comma-separated list, e.g. Reception, Meeting Room A, Open Office</div>
                 </div>
             </div>
             <div class="modal-foot">
@@ -2523,6 +2567,152 @@
             }, 5000);
         });
     });
+    // Meeting Room Scheduling Logic
+    let currentScheduleRoom = null;
+    let currentScheduleDate = new Date();
+
+    function openScheduleModal(room) {
+        currentScheduleRoom = room;
+        currentScheduleDate = new Date(); // reset to today
+        
+        document.getElementById('modalScheduleTitle').innerText = room.name + ' — Schedule';
+        let sub = (room.site_name || 'Main Office') + ' • ' + (room.capacity || 8) + ' people';
+        document.getElementById('modalScheduleSub').innerText = sub;
+        
+        updateScheduleDateDisplay();
+        openModal('modalScheduleRoom');
+    }
+
+    function changeScheduleDate(dir) {
+        currentScheduleDate.setDate(currentScheduleDate.getDate() + dir);
+        updateScheduleDateDisplay();
+    }
+
+    function updateScheduleDateDisplay() {
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        let dateStr = currentScheduleDate.toLocaleDateString('en-GB', options);
+        // en-GB gives "Friday, 2 October" format usually, or we can manually format it.
+        document.getElementById('scheduleDateDisplay').innerText = dateStr;
+    }
+
+    function proceedToBookRoom() {
+        closeModal('modalScheduleRoom');
+        
+        // Open the pre-registration modal
+        if (typeof openInviteModal === 'function') {
+            openInviteModal();
+            
+            // Pre-fill the room
+            if (currentScheduleRoom) {
+                const roomInput = document.getElementById('inv_meeting_room');
+                if (roomInput) roomInput.value = currentScheduleRoom.name;
+                
+                const siteInput = document.getElementById('inv_site_id');
+                if (siteInput && currentScheduleRoom.site_id) {
+                    siteInput.value = currentScheduleRoom.site_id;
+                    if (typeof filterHostEmployeesBySite === 'function') {
+                        filterHostEmployeesBySite(currentScheduleRoom.site_id);
+                    }
+                }
+            }
+            
+            // Pre-fill the date
+            const dateInput = document.getElementById('inv_visit_date');
+            if (dateInput) {
+                // format YYYY-MM-DD
+                const y = currentScheduleDate.getFullYear();
+                const m = String(currentScheduleDate.getMonth() + 1).padStart(2, '0');
+                const d = String(currentScheduleDate.getDate()).padStart(2, '0');
+                dateInput.value = `${y}-${m}-${d}`;
+            }
+        } else {
+            console.error('Invite modal JS not loaded');
+        }
+    }
+
+    @include('partials.invite_modal_js')
+function openEditCarrierModal(id, name) {
+        const modal = document.getElementById('modalAddCarrier');
+        const form = modal.querySelector('form');
+        const title = modal.querySelector('.modal-head h3');
+        const nameInput = form.querySelector('input[name="name"]');
+        
+        // Change title
+        title.innerText = 'Edit Delivery Carrier';
+        
+        // Change form action to update
+        form.action = '/settings/delivery-carriers/' + id;
+        
+        // Add or update _method input for PUT
+        let methodInput = form.querySelector('input[name="_method"]');
+        if (!methodInput) {
+            methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            form.appendChild(methodInput);
+        }
+        methodInput.value = 'PUT';
+        
+        // Set values
+        nameInput.value = name;
+        
+        modal.classList.add('open');
+    }
+
+    // Override openModal for modalAddCarrier to reset it to ADD mode
+    const originalOpenModal = openModal;
+    openModal = function(id) {
+        if (id === 'modalAddCarrier') {
+            const modal = document.getElementById(id);
+            const form = modal.querySelector('form');
+            const title = modal.querySelector('.modal-head h3');
+            title.innerText = 'Add Delivery Carrier';
+            form.action = "{{ route('settings.carriers.store') }}";
+            form.reset();
+            const methodInput = form.querySelector('input[name="_method"]');
+            if (methodInput) methodInput.remove();
+        }
+        if (id === 'modalAddSize') {
+            const modal = document.getElementById(id);
+            const form = modal.querySelector('form');
+            const title = modal.querySelector('.modal-head h3');
+            title.innerText = 'Add Package Size';
+            form.action = "{{ route('settings.package_sizes.store') }}";
+            form.reset();
+            const methodInput = form.querySelector('input[name="_method"]');
+            if (methodInput) methodInput.remove();
+        }
+        originalOpenModal(id);
+    };
+
+    function openEditPackageSizeModal(id, name) {
+        const modal = document.getElementById('modalAddSize');
+        const form = modal.querySelector('form');
+        const title = modal.querySelector('.modal-head h3');
+        const nameInput = form.querySelector('input[name="name"]');
+        
+        // Change title
+        title.innerText = 'Edit Package Size';
+        
+        // Change form action to update
+        form.action = '/settings/package-sizes/' + id;
+        
+        // Add or update _method input for PUT
+        let methodInput = form.querySelector('input[name="_method"]');
+        if (!methodInput) {
+            methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            form.appendChild(methodInput);
+        }
+        methodInput.value = 'PUT';
+        
+        // Set values
+        nameInput.value = name;
+        
+        modal.classList.add('open');
+    }
 </script>
+
 </body>
 </html>
