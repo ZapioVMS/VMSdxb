@@ -1114,7 +1114,7 @@
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 4px; align-items: center;">
-                                        <button type="button" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                        <button type="button" class="btn btn-sm btn-ghost" onclick="editMeetingRoom({{ json_encode($room) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
                                         <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');" style="margin: 0;">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -1746,11 +1746,12 @@
     <div class="modal-backdrop" onclick="closeModal('modalAddRoom')"></div>
     <div class="modal-panel" style="max-width: 500px;">
         <div class="modal-head">
-            <h3>Add Meeting Room</h3>
+            <h3 id="roomModalTitle">Add Meeting Room</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddRoom')">✕</button>
         </div>
         <form method="POST" action="{{ route('settings.meeting_rooms.store') }}" id="formAddRoom">
             @csrf
+            <input type="hidden" name="_method" id="roomMethod" value="POST">
             <div class="modal-body">
                 <div class="field">
                     <label>Room Name</label>
@@ -2433,6 +2434,16 @@
         hideFloorNameSuggestions();
         validateFloorName();
         openModal('modalAddFloor');
+    }
+
+    function editMeetingRoom(room) {
+        document.getElementById('roomModalTitle').innerText = 'Edit Meeting Room';
+        document.getElementById('formAddRoom').action = '/settings/meeting-rooms/' + room.id;
+        document.getElementById('roomMethod').value = 'PUT';
+        document.getElementById('roomName').value = room.name || '';
+        document.getElementById('roomSiteId').value = room.site_id || '';
+        document.getElementById('roomCapacity').value = room.capacity || 8;
+        openModal('modalAddRoom');
     }
 
     function editFloor(fl) {

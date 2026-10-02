@@ -64,6 +64,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
     Route::post('/settings/host-rules', [SettingsController::class, 'updateHostRules'])->name('settings.host_rules');
     Route::post('/settings/meeting-rooms', [SettingsController::class, 'storeMeetingRoom'])->name('settings.meeting_rooms.store');
+    Route::put('/settings/meeting-rooms/{id}', [SettingsController::class, 'updateMeetingRoom'])->name('settings.meeting_rooms.update');
     Route::delete('/settings/meeting-rooms/{id}', [SettingsController::class, 'destroyMeetingRoom'])->name('settings.meeting_rooms.destroy');
     Route::post('/settings/delivery-carriers', [SettingsController::class, 'storeCarrier'])->name('settings.carriers.store');
     Route::put('/settings/delivery-carriers/{id}', [SettingsController::class, 'updateCarrier'])->name('settings.carriers.update');

@@ -501,6 +501,25 @@ class SettingsController extends Controller
     /**
      * Delete Meeting Room.
      */
+    public function updateMeetingRoom(Request $request, string $id): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'site_id' => 'required',
+            'capacity' => 'nullable|integer',
+        ]);
+
+        if (Schema::hasTable('meeting_rooms')) {
+            MeetingRoom::where('id', $id)->update([
+                'name' => $validated['name'],
+                'site_id' => $validated['site_id'],
+                'capacity' => $validated['capacity'] ?? 8,
+            ]);
+        }
+        return redirect()->route('settings.index', ['tab' => 'meetingRooms'])->with('success', 'Meeting Room updated.');
+    }
+
     public function destroyMeetingRoom(string $id): RedirectResponse
     {
         $orgId = TenantScope::getTenantId() ?? 1;
