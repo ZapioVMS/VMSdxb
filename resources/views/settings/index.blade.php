@@ -2426,8 +2426,7 @@
         document.getElementById('floorMethod').value = 'POST';
         document.getElementById('floorName').value = '';
         document.getElementById('floorDescription').value = '';
-        currentFloorTags = [];
-        renderFloorTags();
+        if (document.getElementById('floorAreasInput')) document.getElementById('floorAreasInput').value = '';
         if (siteId) {
             document.getElementById('floorSiteId').value = siteId;
         }
@@ -2448,14 +2447,16 @@
         }
         document.getElementById('floorDescription').value = fl.description || '';
         
-        // Populate existing areas as tags
-        currentFloorTags = [];
+        // Populate existing areas text
+        let areasStr = '';
         if (fl.areas && Array.isArray(fl.areas)) {
-            currentFloorTags = fl.areas.map(a => a.name).filter(Boolean);
+            areasStr = fl.areas.map(a => a.name).filter(Boolean).join(', ');
         } else if (fl.areas_text) {
-            currentFloorTags = fl.areas_text.split(',').map(s => s.trim()).filter(Boolean);
+            areasStr = fl.areas_text;
         }
-        renderFloorTags();
+        if (document.getElementById('floorAreasInput')) {
+            document.getElementById('floorAreasInput').value = areasStr;
+        }
         hideFloorNameSuggestions();
         validateFloorName();
 
