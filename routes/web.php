@@ -107,6 +107,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/lookups/id-types', [LookupController::class, 'storeIdType'])->name('lookups.id_types.store');
     Route::put('/lookups/id-types/{idType}', [LookupController::class, 'updateIdType'])->name('lookups.id_types.update');
+    Route::delete('/lookups/id-types/{idType}', [LookupController::class, 'destroyIdType'])->name('lookups.id_types.destroy');
 
     Route::post('/lookups/visitor-types', [LookupController::class, 'storeVisitorType'])->name('lookups.visitor_types.store');
     Route::put('/lookups/visitor-types/{visitorType}', [LookupController::class, 'updateVisitorType'])->name('lookups.visitor_types.update');

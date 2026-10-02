@@ -995,6 +995,7 @@
                                         <div class="avatar-sq icon-tint-s5"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg></div>
                                         <div>
                                             <div style="font-weight: 700; font-size: 14px;">{{ $p->name }}</div>
+                                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ $p->visits_count ?? 0 }} {{ Str::plural('visit', $p->visits_count ?? 0) }}</div>
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 4px; align-items: center;">
@@ -1041,6 +1042,7 @@
                                         <span style="color: var(--accent); font-size: 11px; font-weight: 600; margin-left: 6px;">&bull; Active</span>
                                     @endif
                                 </div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">{{ $vt->visits_count ?? 0 }} {{ Str::plural('visit', $vt->visits_count ?? 0) }}</div>
                                 <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;">
                                     @if ($vt->requires_approval) <span class="chip chip-good">Requires Approval</span> @endif
                                     @if ($vt->requires_nda) <span class="chip chip-good">Requires NDA</span> @endif
@@ -1067,11 +1069,23 @@
                                     <div style="display: flex; align-items: center; gap: 10px;">
                                         <div class="avatar-sq icon-tint-s2"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div>
                                         <div>
-                                            <div style="font-weight: 700; font-size: 14px;">{{ $it->name }}</div>
-                                            <div class="cell-sub">Code: {{ $it->code }}</div>
+                                            <div style="font-weight: 700; font-size: 14px;">
+                                                {{ $it->name }}
+                                                @if($it->status === 'active')
+                                                    <span style="color: var(--accent); font-size: 11px; font-weight: 600; margin-left: 6px;">&bull; Active</span>
+                                                @endif
+                                            </div>
+                                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ $it->visitors_count ?? 0 }} {{ Str::plural('visit', $it->visitors_count ?? 0) }}</div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="editIdType({{ json_encode($it) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <button type="button" class="btn btn-sm btn-ghost" onclick="editIdType({{ json_encode($it) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                        <form action="{{ route('lookups.id_types.destroy', $it->id) }}" method="POST" onsubmit="return confirm('Delete this ID type?');" style="margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-ghost" style="color: #ef4444;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -1643,24 +1657,25 @@
             <input type="hidden" name="_method" id="idTypeMethod" value="POST">
             <div class="modal-body">
                 <div class="field">
-                    <label>Document Name *</label>
-                    <input type="text" name="name" id="idTypeName" required placeholder="e.g. Emirates ID">
+                    <label>ID Type Name</label>
+                    <input type="text" name="name" id="idTypeName" required placeholder="e.g. Driving License">
                 </div>
-                <div class="field">
-                    <label>Document Code *</label>
-                    <input type="text" name="code" id="idTypeCode" required placeholder="e.g. EID">
-                </div>
-                <div class="field">
-                    <label>Status</label>
-                    <select name="status" id="idTypeStatus">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+                
+                <input type="hidden" name="status" id="idTypeStatusHidden" value="active">
+                <div class="field" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                    <div style="padding-right: 16px;">
+                        <label style="margin-bottom: 4px;">Active</label>
+                        <div style="font-size: 12.5px; color: var(--text-muted);">Add, edit, or disable the ID document types visitors can present. Only active types appear on the Check-In form.</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="idTypeStatusToggle" onchange="document.getElementById('idTypeStatusHidden').value = this.checked ? 'active' : 'inactive'">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddIdType')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save ID Type</button>
+                <button type="submit" class="btn btn-primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;"><path d="M20 6L9 17l-5-5"/></svg> Save</button>
             </div>
         </form>
     </div>
@@ -2035,8 +2050,11 @@
         document.getElementById('idTypeForm').action = '/lookups/id-types/' + it.id;
         document.getElementById('idTypeMethod').value = 'PUT';
         document.getElementById('idTypeName').value = it.name || '';
-        document.getElementById('idTypeCode').value = it.code || '';
-        document.getElementById('idTypeStatus').value = it.status || 'active';
+        
+        const status = it.status || 'active';
+        document.getElementById('idTypeStatusHidden').value = status;
+        document.getElementById('idTypeStatusToggle').checked = (status === 'active');
+        
         openModal('modalAddIdType');
     }
 

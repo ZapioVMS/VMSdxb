@@ -185,9 +185,9 @@ class SettingsController extends Controller
             'visits as active_visitors_count' => fn($q) => $q->where('status', 'checked_in')
         ])->get();
 
-        $purposes = VisitPurpose::orderBy('name')->get();
-        $visitorTypes = VisitorType::orderBy('name')->get();
-        $idTypes = IdType::orderBy('name')->get();
+        $purposes = VisitPurpose::withCount('visits')->orderBy('name')->get();
+        $visitorTypes = VisitorType::withCount('visits')->orderBy('name')->get();
+        $idTypes = IdType::withCount('visitors')->orderBy('name')->get();
         $shifts = Shift::orderBy('name')->get();
         $floors = Floor::with(['site', 'building', 'areas'])->orderBy('name')->get();
         $buildings = Building::orderBy('name')->get();

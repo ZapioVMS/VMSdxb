@@ -12,6 +12,7 @@ use App\Models\VisitorType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -90,10 +91,11 @@ class LookupController extends Controller
     public function storeIdType(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:255', Rule::unique('id_types', 'name')],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
+
+        $validated['code'] = Str::slug($validated['name']);
 
         IdType::create($validated);
 
@@ -102,15 +104,31 @@ class LookupController extends Controller
 
     public function updateIdType(Request $request, IdType $idType): RedirectResponse
     {
+        $validated = $request->request->all();
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('id_types', 'name')->ignore($idType->id)
+            ],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
+        
+        $validated['code'] = Str::slug($validated['name']);
 
         $idType->update($validated);
 
         return redirect()->route('settings.index', ['tab' => 'idTypes'])->with('success', 'ID Type updated successfully.');
+    }
+
+    public function destroyIdType(IdType $idType): RedirectResponse
+    {
+        if ($idType->visitors()->exists()) {
+            return redirect()->route('settings.index', ['tab' => 'idTypes'])->with('error', 'Cannot delete ID type because it is being used by existing visitors.');
+        }
+
+        $idType->delete();
+
+        return redirect()->route('settings.index', ['tab' => 'idTypes'])->with('success', 'ID Type deleted successfully.');
     }
 
     // --- VISITOR TYPES ---

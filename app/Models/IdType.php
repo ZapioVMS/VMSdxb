@@ -14,8 +14,14 @@ class IdType extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'organization_id',
         'name',
         'code',
         'status',
     ];
+
+    public function visitors()
+    {
+        return $this->hasMany(Visitor::class, 'id_type_id');
+    }
 }
