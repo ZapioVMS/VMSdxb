@@ -902,18 +902,18 @@
                                 @if ($dpt->description)
                                     <div class="cell-sub" style="margin-top: 2px;">{{ $dpt->description }}</div>
                                 @endif
-                                <div class="form-grid" style="margin-top: 14px; row-gap: 4px; font-size: 12px;">
+                                <div class="form-grid" style="margin-top: 14px; grid-template-columns: 1fr 1fr; row-gap: 16px; font-size: 12px;">
                                     <div>
-                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->employees_count }}</div>
+                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->employees_count ?? 0 }}</div>
                                         <div class="cell-sub">Members</div>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->code }}</div>
-                                        <div class="cell-sub">Code</div>
+                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->visits_count ?? 0 }}</div>
+                                        <div class="cell-sub">Visits/Week</div>
                                     </div>
-                                    <div>
-                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->headEmployee ? $dpt->headEmployee->first_name : '—' }}</div>
-                                        <div class="cell-sub">Dept Head</div>
+                                    <div style="grid-column: 1 / -1;">
+                                        <div style="font-weight: 700; font-size: 15px;">Floor {{ $dpt->floor_id ?? $loop->iteration }}</div>
+                                        <div class="cell-sub">Floor</div>
                                     </div>
                                 </div>
                             </div>
