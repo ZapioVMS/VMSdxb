@@ -43,13 +43,23 @@ class SiteController extends Controller
             'capacity' => ['nullable', 'integer', 'min:0'],
             'floors' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'string', 'in:active,inactive'],
+            'visiting_hours_from' => ['nullable', 'string'],
+            'visiting_hours_to' => ['nullable', 'string'],
         ]);
 
         if (empty($validated['code'])) {
             $validated['code'] = strtoupper(\Illuminate\Support\Str::slug($validated['name'], '_')) ?: ('SITE_' . time());
         }
 
-        Site::create(array_merge($validated, ['organization_id' => $orgId]));
+        $visiting_hours = null;
+        if (!empty($validated['visiting_hours_from']) && !empty($validated['visiting_hours_to'])) {
+            $visiting_hours = $validated['visiting_hours_from'] . '–' . $validated['visiting_hours_to'];
+        }
+
+        Site::create(array_merge(
+            \Illuminate\Support\Arr::except($validated, ['visiting_hours_from', 'visiting_hours_to']),
+            ['organization_id' => $orgId, 'visiting_hours' => $visiting_hours]
+        ));
 
         return back()->with('success', 'Branch successfully created.');
     }
@@ -68,13 +78,23 @@ class SiteController extends Controller
             'capacity' => ['nullable', 'integer', 'min:0'],
             'floors' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'string', 'in:active,inactive'],
+            'visiting_hours_from' => ['nullable', 'string'],
+            'visiting_hours_to' => ['nullable', 'string'],
         ]);
 
         if (empty($validated['code']) && empty($site->code)) {
             $validated['code'] = strtoupper(\Illuminate\Support\Str::slug($validated['name'], '_')) ?: ('SITE_' . time());
         }
 
-        $site->update($validated);
+        $visiting_hours = null;
+        if (!empty($validated['visiting_hours_from']) && !empty($validated['visiting_hours_to'])) {
+            $visiting_hours = $validated['visiting_hours_from'] . '–' . $validated['visiting_hours_to'];
+        }
+
+        $site->update(array_merge(
+            \Illuminate\Support\Arr::except($validated, ['visiting_hours_from', 'visiting_hours_to']),
+            ['visiting_hours' => $visiting_hours]
+        ));
 
         return back()->with('success', 'Branch updated successfully.');
     }

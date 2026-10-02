@@ -11,6 +11,8 @@ use App\Models\VisitPurpose;
 use App\Models\VisitorType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class LookupController extends Controller
@@ -44,25 +46,44 @@ class LookupController extends Controller
     public function storePurpose(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('visit_purposes', 'name')->where('organization_id', TenantScope::getTenantId())
+            ],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
 
         VisitPurpose::create(array_merge($validated, ['organization_id' => TenantScope::getTenantId()]));
 
-        return redirect()->route('lookups.index', ['tab' => 'purposes'])->with('success', 'Visit purpose created successfully.');
+        return redirect()->route('settings.index', ['tab' => 'purposes'])->with('success', 'Visit purpose created successfully.');
     }
 
     public function updatePurpose(Request $request, VisitPurpose $purpose): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('visit_purposes', 'name')
+                    ->where('organization_id', TenantScope::getTenantId())
+                    ->ignore($purpose->id)
+            ],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
 
         $purpose->update($validated);
 
-        return redirect()->route('lookups.index', ['tab' => 'purposes'])->with('success', 'Visit purpose updated successfully.');
+        return redirect()->route('settings.index', ['tab' => 'purposes'])->with('success', 'Visit purpose updated successfully.');
+    }
+
+    public function destroyPurpose(VisitPurpose $purpose): RedirectResponse
+    {
+        if ($purpose->visits()->exists()) {
+            return back()->with('error', 'Cannot delete purpose — visitor records exist for this purpose.');
+        }
+
+        $purpose->delete();
+
+        return redirect()->route('settings.index', ['tab' => 'purposes'])->with('success', 'Visit purpose deleted successfully.');
     }
 
     // --- ID TYPES ---
@@ -76,7 +97,7 @@ class LookupController extends Controller
 
         IdType::create($validated);
 
-        return redirect()->route('lookups.index', ['tab' => 'id_types'])->with('success', 'ID Type created successfully.');
+        return redirect()->route('settings.index', ['tab' => 'idTypes'])->with('success', 'ID Type created successfully.');
     }
 
     public function updateIdType(Request $request, IdType $idType): RedirectResponse
@@ -89,14 +110,17 @@ class LookupController extends Controller
 
         $idType->update($validated);
 
-        return redirect()->route('lookups.index', ['tab' => 'id_types'])->with('success', 'ID Type updated successfully.');
+        return redirect()->route('settings.index', ['tab' => 'idTypes'])->with('success', 'ID Type updated successfully.');
     }
 
     // --- VISITOR TYPES ---
     public function storeVisitorType(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('visitor_types', 'name')->where('organization_id', TenantScope::getTenantId())
+            ],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
 
@@ -109,13 +133,18 @@ class LookupController extends Controller
             'requires_escort' => $request->has('requires_escort'),
         ]);
 
-        return redirect()->route('lookups.index', ['tab' => 'visitor_types'])->with('success', 'Visitor category created successfully.');
+        return redirect()->route('settings.index', ['tab' => 'visitorTypes'])->with('success', 'Visitor category created successfully.');
     }
 
     public function updateVisitorType(Request $request, VisitorType $visitorType): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('visitor_types', 'name')
+                    ->where('organization_id', TenantScope::getTenantId())
+                    ->ignore($visitorType->id)
+            ],
             'status' => ['required', 'string', 'in:active,inactive'],
         ]);
 
@@ -127,7 +156,18 @@ class LookupController extends Controller
             'requires_escort' => $request->has('requires_escort'),
         ]);
 
-        return redirect()->route('lookups.index', ['tab' => 'visitor_types'])->with('success', 'Visitor category updated successfully.');
+        return redirect()->route('settings.index', ['tab' => 'visitorTypes'])->with('success', 'Visitor category updated successfully.');
+    }
+
+    public function destroyVisitorType(VisitorType $visitorType): RedirectResponse
+    {
+        if ($visitorType->visits()->exists()) {
+            return back()->with('error', 'Cannot delete visitor type — visitor records exist for this category.');
+        }
+
+        $visitorType->delete();
+
+        return redirect()->route('settings.index', ['tab' => 'visitorTypes'])->with('success', 'Visitor category deleted successfully.');
     }
 
     // --- SHIFTS ---
@@ -143,7 +183,7 @@ class LookupController extends Controller
 
         Shift::create(array_merge($validated, ['organization_id' => TenantScope::getTenantId()]));
 
-        return redirect()->route('lookups.index', ['tab' => 'shifts'])->with('success', 'Shift schedule created successfully.');
+        return redirect()->route('settings.index', ['tab' => 'shifts'])->with('success', 'Shift schedule created successfully.');
     }
 
     public function updateShift(Request $request, Shift $shift): RedirectResponse
@@ -158,7 +198,7 @@ class LookupController extends Controller
 
         $shift->update($validated);
 
-        return redirect()->route('lookups.index', ['tab' => 'shifts'])->with('success', 'Shift schedule updated successfully.');
+        return redirect()->route('settings.index', ['tab' => 'shifts'])->with('success', 'Shift schedule updated successfully.');
     }
 
     // --- FLOORS ---
@@ -174,7 +214,7 @@ class LookupController extends Controller
 
         Floor::create(array_merge($validated, ['organization_id' => TenantScope::getTenantId()]));
 
-        return redirect()->route('lookups.index', ['tab' => 'floors'])->with('success', 'Building floor created successfully.');
+        return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Building floor created successfully.');
     }
 
     public function updateFloor(Request $request, Floor $floor): RedirectResponse
@@ -189,6 +229,6 @@ class LookupController extends Controller
 
         $floor->update($validated);
 
-        return redirect()->route('lookups.index', ['tab' => 'floors'])->with('success', 'Building floor updated successfully.');
+        return redirect()->route('settings.index', ['tab' => 'floors'])->with('success', 'Building floor updated successfully.');
     }
 }

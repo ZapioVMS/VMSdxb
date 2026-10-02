@@ -103,12 +103,14 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/lookups/purposes', [LookupController::class, 'storePurpose'])->name('lookups.purposes.store');
     Route::put('/lookups/purposes/{purpose}', [LookupController::class, 'updatePurpose'])->name('lookups.purposes.update');
+    Route::delete('/lookups/purposes/{purpose}', [LookupController::class, 'destroyPurpose'])->name('lookups.purposes.destroy');
 
     Route::post('/lookups/id-types', [LookupController::class, 'storeIdType'])->name('lookups.id_types.store');
     Route::put('/lookups/id-types/{idType}', [LookupController::class, 'updateIdType'])->name('lookups.id_types.update');
 
     Route::post('/lookups/visitor-types', [LookupController::class, 'storeVisitorType'])->name('lookups.visitor_types.store');
     Route::put('/lookups/visitor-types/{visitorType}', [LookupController::class, 'updateVisitorType'])->name('lookups.visitor_types.update');
+    Route::delete('/lookups/visitor-types/{visitorType}', [LookupController::class, 'destroyVisitorType'])->name('lookups.visitor_types.destroy');
 
     Route::post('/lookups/shifts', [LookupController::class, 'storeShift'])->name('lookups.shifts.store');
     Route::put('/lookups/shifts/{shift}', [LookupController::class, 'updateShift'])->name('lookups.shifts.update');

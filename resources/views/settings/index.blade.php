@@ -26,6 +26,13 @@
             --radius-lg: 14px;
             --shadow: 0 1px 2px rgba(14,26,24,.06), 0 8px 24px -12px rgba(14,26,24,.18);
         }
+
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        .toggle-switch input:checked + .toggle-slider { background-color: var(--accent); }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
         *, *::before, *::after { box-sizing: border-box; }
         body { margin: 0; font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; }
         .ic { width: 16px; height: 16px; flex: none; display: inline-block; vertical-align: -3px; }
@@ -191,6 +198,20 @@
             <div class="alert-danger">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                 <span>{{ session('error') }}</span>
+            </div>
+        @endif
+        
+        @if ($errors->any())
+            <div class="alert-danger" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                    <strong>Please fix the following errors:</strong>
+                </div>
+                <ul style="margin: 0; padding-left: 28px; list-style-type: disc;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
@@ -974,10 +995,16 @@
                                         <div class="avatar-sq icon-tint-s5"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg></div>
                                         <div>
                                             <div style="font-weight: 700; font-size: 14px;">{{ $p->name }}</div>
-                                            <span class="chip {{ $p->status === 'active' ? 'chip-good' : 'chip-muted' }}" style="font-size: 10.5px;">{{ ucfirst($p->status) }}</span>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="editPurpose({{ json_encode($p) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <button type="button" class="btn btn-sm btn-ghost" onclick="editPurpose({{ json_encode($p) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                        <form action="{{ route('lookups.purposes.destroy', $p->id) }}" method="POST" onsubmit="return confirm('Delete this purpose?');" style="margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-ghost" style="color: #ef4444;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -989,7 +1016,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <div>
                             <div style="font-size: 16px; font-weight: 700;">Visitor Types</div>
-                            <div class="cell-sub">Special classifications with tailored security rules</div>
+                            <div class="cell-sub">Manage the visitor type categories used in pre-registration and NDA/agreement rules.</div>
                         </div>
                         <button type="button" class="btn btn-primary" onclick="openModal('modalAddVisitorType')">+ Add Visitor Type</button>
                     </div>
@@ -999,9 +1026,21 @@
                             <div class="card">
                                 <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                                     <div class="avatar-sq icon-tint-s3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="editVisitorType({{ json_encode($vt) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <button type="button" class="btn btn-sm btn-ghost" onclick="editVisitorType({{ json_encode($vt) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                        <form action="{{ route('lookups.visitor_types.destroy', $vt->id) }}" method="POST" onsubmit="return confirm('Delete this visitor type?');" style="margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-ghost" style="color: #ef4444;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                                        </form>
+                                    </div>
                                 </div>
-                                <div style="font-weight: 700; font-size: 14.5px; margin-top: 10px;">{{ $vt->name }}</div>
+                                <div style="font-weight: 700; font-size: 14.5px; margin-top: 10px;">
+                                    {{ $vt->name }}
+                                    @if($vt->status === 'active')
+                                        <span style="color: var(--accent); font-size: 11px; font-weight: 600; margin-left: 6px;">&bull; Active</span>
+                                    @endif
+                                </div>
                                 <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;">
                                     @if ($vt->requires_approval) <span class="chip chip-good">Requires Approval</span> @endif
                                     @if ($vt->requires_nda) <span class="chip chip-good">Requires NDA</span> @endif
@@ -1471,42 +1510,52 @@
         <form id="branchForm" method="POST" action="{{ route('sites.store') }}">
             @csrf
             <input type="hidden" name="_method" id="branchMethod" value="POST">
+            <input type="hidden" name="code" id="branchCode" value="">
+            <input type="hidden" name="address" id="branchAddress" value="">
+            <input type="hidden" name="status" id="branchStatus" value="active">
             <div class="modal-body">
                 <div class="form-grid">
                     <div class="field">
-                        <label>Branch Name (English) *</label>
-                        <input type="text" name="name" id="branchName" required placeholder="e.g. Business Bay Tower">
+                        <label>Branch name</label>
+                        <input type="text" name="name" id="branchName" required placeholder="">
                     </div>
                     <div class="field">
                         <label>اسم الفرع (Arabic)</label>
-                        <input type="text" name="name_ar" id="branchNameAr" dir="rtl" placeholder="برج الخليج التجاري">
+                        <input type="text" name="name_ar" id="branchNameAr" dir="rtl" placeholder="">
                     </div>
                     <div class="field">
-                        <label>City *</label>
-                        <input type="text" name="city" id="branchCity" value="Dubai" required>
-                    </div>
-                    <div class="field">
-                        <label>Branch Code *</label>
-                        <input type="text" name="code" id="branchCode" placeholder="e.g. BBT">
+                        <label>City</label>
+                        <input type="text" name="city" id="branchCity" value="" required>
                     </div>
                     <div class="field">
                         <label>Floors</label>
-                        <input type="number" name="floors" id="branchFloors" value="1" min="1">
+                        <input type="number" name="floors" id="branchFloors" value="" min="1">
                     </div>
                     <div class="field">
-                        <label>Max Visitor Capacity</label>
-                        <input type="number" name="capacity" id="branchCapacity" value="500" min="1">
-                    </div>
-                    <div class="field" style="grid-column: 1 / -1;">
-                        <label>Address</label>
-                        <input type="text" name="address" id="branchAddress" placeholder="Street, Building, Zone">
-                    </div>
-                    <div class="field">
-                        <label>Status</label>
-                        <select name="status" id="branchStatus">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                        <label>Visiting hours (from)</label>
+                        <select name="visiting_hours_from" id="branchVisitsFrom">
+                            <option value="">Select Time</option>
+                            <option value="07:00 AM">07:00 AM</option>
+                            <option value="08:00 AM">08:00 AM</option>
+                            <option value="09:00 AM">09:00 AM</option>
+                            <option value="10:00 AM">10:00 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
                         </select>
+                    </div>
+                    <div class="field">
+                        <label>Visiting hours (to)</label>
+                        <select name="visiting_hours_to" id="branchVisitsTo">
+                            <option value="">Select Time</option>
+                            <option value="04:00 PM">04:00 PM</option>
+                            <option value="05:00 PM">05:00 PM</option>
+                            <option value="06:00 PM">06:00 PM</option>
+                            <option value="07:00 PM">07:00 PM</option>
+                            <option value="08:00 PM">08:00 PM</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Capacity</label>
+                        <input type="number" name="capacity" id="branchCapacity" value="" min="1">
                     </div>
                 </div>
             </div>
@@ -1534,13 +1583,7 @@
                     <label>Purpose Name *</label>
                     <input type="text" name="name" id="purposeName" required placeholder="e.g. Client Meeting">
                 </div>
-                <div class="field">
-                    <label>Status</label>
-                    <select name="status" id="purposeStatus">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
+                <input type="hidden" name="status" id="purposeStatus" value="active">
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddPurpose')">Cancel</button>
@@ -1563,20 +1606,25 @@
             <input type="hidden" name="_method" id="vtMethod" value="POST">
             <div class="modal-body">
                 <div class="field">
-                    <label>Type Name *</label>
-                    <input type="text" name="name" id="vtName" required placeholder="e.g. VIP Guest">
+                    <label>Visitor Type Name</label>
+                    <input type="text" name="name" id="vtName" required placeholder="">
                 </div>
-                <div class="field">
-                    <label>Status</label>
-                    <select name="status" id="vtStatus">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+                
+                <input type="hidden" name="status" id="vtStatusHidden" value="active">
+                <div class="field" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                    <div style="padding-right: 16px;">
+                        <label style="margin-bottom: 4px;">Active</label>
+                        <div style="font-size: 12.5px; color: var(--text-muted);">Add, edit, or disable visitor type categories. Only active types appear on the Pre-Registration form.</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="vtStatusToggle" onchange="document.getElementById('vtStatusHidden').value = this.checked ? 'active' : 'inactive'">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddVisitorType')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Type</button>
+                <button type="submit" class="btn btn-primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;"><path d="M20 6L9 17l-5-5"/></svg> Save</button>
             </div>
         </form>
     </div>
@@ -1941,6 +1989,19 @@
         document.getElementById('branchCapacity').value = site.capacity || 500;
         document.getElementById('branchAddress').value = site.address || '';
         document.getElementById('branchStatus').value = site.status || 'active';
+        
+        let vFrom = '';
+        let vTo = '';
+        if (site.visiting_hours) {
+            const parts = site.visiting_hours.split(/–|-/); // handle en-dash or hyphen
+            if (parts.length === 2) {
+                vFrom = parts[0].trim();
+                vTo = parts[1].trim();
+            }
+        }
+        document.getElementById('branchVisitsFrom').value = vFrom;
+        document.getElementById('branchVisitsTo').value = vTo;
+
         openModal('modalAddBranch');
     }
 
@@ -1960,7 +2021,11 @@
         document.getElementById('vtForm').action = '/lookups/visitor-types/' + vt.id;
         document.getElementById('vtMethod').value = 'PUT';
         document.getElementById('vtName').value = vt.name || '';
-        document.getElementById('vtStatus').value = vt.status || 'active';
+        
+        const status = vt.status || 'active';
+        document.getElementById('vtStatusHidden').value = status;
+        document.getElementById('vtStatusToggle').checked = (status === 'active');
+        
         openModal('modalAddVisitorType');
     }
 
@@ -2399,6 +2464,45 @@
             if (floorNameDropdown && floorNameInput && !floorNameInput.contains(e.target) && !floorNameDropdown.contains(e.target)) {
                 hideFloorNameSuggestions();
             }
+        });
+    });
+
+    // Auto-translate Branch Name to Arabic
+    let branchNameDebounceTimer;
+    const branchNameInput = document.getElementById('branchName');
+    const branchNameArInput = document.getElementById('branchNameAr');
+    
+    if (branchNameInput && branchNameArInput) {
+        branchNameInput.addEventListener('input', function() {
+            clearTimeout(branchNameDebounceTimer);
+            const text = this.value.trim();
+            branchNameDebounceTimer = setTimeout(async () => {
+                if (!text) {
+                    branchNameArInput.value = '';
+                    return;
+                }
+                try {
+                    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ar`);
+                    const data = await res.json();
+                    if (data && data.responseData && data.responseData.translatedText) {
+                        branchNameArInput.value = data.responseData.translatedText;
+                    }
+                } catch (e) {
+                    console.error('Translation failed', e);
+                }
+            }, 600);
+        });
+    }
+    
+    // Auto fade-out alerts after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert-success, .alert-danger');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500); // Remove from DOM after fade completes
+            }, 5000);
         });
     });
 </script>

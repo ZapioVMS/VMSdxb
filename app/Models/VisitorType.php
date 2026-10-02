@@ -28,4 +28,9 @@ class VisitorType extends Model
         'requires_nda' => 'boolean',
         'requires_escort' => 'boolean',
     ];
+
+    public function visits()
+    {
+        return $this->hasMany(Visit::class, 'visitor_type_id');
+    }
 }

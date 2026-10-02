@@ -19,4 +19,9 @@ class VisitPurpose extends Model
         'name',
         'status',
     ];
+
+    public function visits()
+    {
+        return $this->hasMany(Visit::class, 'purpose_id');
+    }
 }
