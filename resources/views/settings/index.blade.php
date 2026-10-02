@@ -959,12 +959,12 @@
                                         <div style="font-weight: 700;">{{ $site->capacity ?? 'Unlimited' }}</div>
                                     </div>
                                     <div>
-                                        <div class="cell-sub">Staff</div>
-                                        <div style="font-weight: 700;">{{ $site->employees_count }}</div>
+                                        <div class="cell-sub">Visiting hours</div>
+                                        <div style="font-weight: 700;">08:00 AM–07:00 PM</div>
                                     </div>
                                     <div>
-                                        <div class="cell-sub">On-site Now</div>
-                                        <div style="font-weight: 700; color: var(--accent);">{{ $site->active_visitors_count ?? 0 }}</div>
+                                        <div class="cell-sub">on-site now</div>
+                                        <div style="font-weight: 700; color: #0f766e;">{{ $site->active_visitors_count ?? 0 }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -1563,25 +1563,30 @@
                         <input type="number" name="floors" id="branchFloors" value="" min="1">
                     </div>
                     <div class="field">
+                        @php
+                            $times = [];
+                            $start = strtotime('12:00 AM');
+                            $end = strtotime('11:45 PM');
+                            while ($start <= $end) {
+                                $times[] = date('h:i A', $start);
+                                $start = strtotime('+15 minutes', $start);
+                            }
+                        @endphp
                         <label>Visiting hours (from)</label>
                         <select name="visiting_hours_from" id="branchVisitsFrom">
                             <option value="">Select Time</option>
-                            <option value="07:00 AM">07:00 AM</option>
-                            <option value="08:00 AM">08:00 AM</option>
-                            <option value="09:00 AM">09:00 AM</option>
-                            <option value="10:00 AM">10:00 AM</option>
-                            <option value="11:00 AM">11:00 AM</option>
+                            @foreach($times as $time)
+                                <option value="{{ $time }}">{{ $time }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="field">
                         <label>Visiting hours (to)</label>
                         <select name="visiting_hours_to" id="branchVisitsTo">
                             <option value="">Select Time</option>
-                            <option value="04:00 PM">04:00 PM</option>
-                            <option value="05:00 PM">05:00 PM</option>
-                            <option value="06:00 PM">06:00 PM</option>
-                            <option value="07:00 PM">07:00 PM</option>
-                            <option value="08:00 PM">08:00 PM</option>
+                            @foreach($times as $time)
+                                <option value="{{ $time }}">{{ $time }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="field">
