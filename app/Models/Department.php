@@ -14,13 +14,14 @@ class Department extends Model
 
     protected $table = 'departments';
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'organization_id',
         'name',
         'code',
         'description',
+        'icon_key',
         'head_employee_id',
         'contact_email',
         'contact_phone',
@@ -35,6 +36,13 @@ class Department extends Model
         'require_nda' => 'boolean',
         'escort_required' => 'boolean',
     ];
+
+    public function floors()
+    {
+        return $this->belongsToMany(Floor::class, 'department_floor')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
 
     public function headEmployee(): BelongsTo
     {

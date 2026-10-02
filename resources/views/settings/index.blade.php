@@ -119,7 +119,7 @@
         .chipset { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .chip-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: all .15s; user-select: none; }
         .chip-toggle:hover { background: var(--surface-2); border-color: var(--text-muted); }
-        .chip-toggle.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+        .chip-toggle.active, .chip-toggle:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
         .chip-toggle .ic { width: 13px; height: 13px; }
         .chip-toggle input { display: none; }
 
@@ -850,7 +850,20 @@
                             <div class="card">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div class="avatar-sq icon-tint-s1">
-                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5M9 12h.01M13 12h.01M9 16h.01M13 16h.01"/></svg>
+                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            @switch($dpt->icon_key)
+                                                @case('sun') <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/> @break
+                                                @case('code') <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/> @break
+                                                @case('heart') <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> @break
+                                                @case('dollar') <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/> @break
+                                                @case('scale') <path d="M12 2v20M17 5H9.5M19 12h-4l2-4zM9 12H5l2-4z"/> @break
+                                                @case('speaker') <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/> @break
+                                                @case('home') <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/> @break
+                                                @case('shield') <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/> @break
+                                                @case('layers') <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/> @break
+                                                @default <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                                            @endswitch
+                                        </svg>
                                     </div>
                                     <div style="display: flex; gap: 4px;">
                                         <button type="button" class="btn btn-sm btn-ghost" title="Edit" onclick="editDepartment({{ json_encode($dpt) }})">
@@ -1327,7 +1340,7 @@
 <!-- 1. Add/Edit Department Modal -->
 <div id="modalAddDepartment" class="modal-root">
     <div class="modal-backdrop" onclick="closeModal('modalAddDepartment')"></div>
-    <div class="modal-panel">
+    <div class="modal-panel" style="max-width: 520px;">
         <div class="modal-head">
             <h3 id="deptModalTitle">Add Department</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddDepartment')">✕</button>
@@ -1335,41 +1348,113 @@
         <form id="deptForm" method="POST" action="{{ route('departments.store') }}">
             @csrf
             <input type="hidden" name="_method" id="deptMethod" value="POST">
+            <!-- Keeping code as a hidden field that will be auto-generated in the backend if empty, since it's required by the schema but not in the UI image -->
+            <input type="hidden" name="code" id="deptCode" value="">
+            <input type="hidden" name="status" id="deptStatus" value="active">
+            
             <div class="modal-body">
                 <div class="form-grid">
-                    <div class="field">
-                        <label>Department Name *</label>
-                        <input type="text" name="name" id="deptName" required placeholder="e.g. IT & Security">
-                    </div>
-                    <div class="field">
-                        <label>Department Code *</label>
-                        <input type="text" name="code" id="deptCode" required placeholder="e.g. ITSEC">
-                    </div>
                     <div class="field" style="grid-column: 1 / -1;">
+                        <label>Department Name *</label>
+                        <input type="text" name="name" id="deptName" required placeholder="e.g. Marketing">
+                    </div>
+                    
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <label>Description</label>
+                        <textarea name="description" id="deptDesc" rows="3" placeholder=""></textarea>
+                    </div>
+
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <label>Icon</label>
+                        <div class="tagchips" style="gap: 8px;">
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="sun" checked> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="code"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="heart"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="dollar"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="scale"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5M19 12h-4l2-4zM9 12H5l2-4z"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="speaker"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="briefcase"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="home"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="shield"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></label>
+                            <label class="chip-toggle"><input type="radio" name="icon_key" value="layers"> <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></label>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Floor</label>
+                        <select name="floor_ids[]" id="deptFloor" @if($floors->isEmpty()) disabled @endif>
+                            <option value="">Unassigned</option>
+                            @foreach ($floors->groupBy(fn($f) => $f->site->name ?? 'Main Office') as $siteName => $siteFloors)
+                                <optgroup label="{{ $siteName }}">
+                                    @foreach ($siteFloors as $floor)
+                                        <option value="{{ $floor->id }}">{{ $siteName }} — {{ $floor->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
+                        @if($floors->isEmpty())
+                            <div style="font-size: 11px; color: var(--critical); margin-top: 4px;">No floors are configured. Add floors under Floors & Locations first.</div>
+                        @endif
+                    </div>
+                    
+                    <div class="field">
                         <label>Department Head</label>
                         <select name="head_employee_id" id="deptHead">
-                            <option value="">— Select Employee —</option>
+                            <option value="">No manager</option>
                             @foreach ($employees as $emp)
-                                <option value="{{ $emp->id }}">{{ $emp->full_name }} ({{ $emp->job_title ?? 'Staff' }})</option>
+                                <option value="{{ $emp->id }}">{{ $emp->full_name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="field" style="grid-column: 1 / -1;">
-                        <label>Description</label>
-                        <textarea name="description" id="deptDesc" rows="2" placeholder="Responsibilities & floor info"></textarea>
-                    </div>
+                    
                     <div class="field">
-                        <label>Status</label>
-                        <select name="status" id="deptStatus">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
+                        <label>Contact Email</label>
+                        <input type="email" name="contact_email" id="deptContactEmail" placeholder="">
+                    </div>
+                    
+                    <div class="field">
+                        <label>Contact Phone</label>
+                        <input type="text" name="contact_phone" id="deptContactPhone" placeholder="">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 24px;">
+                    <div class="section-title" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">ACCESS SETTINGS</div>
+                    
+                    <div class="switchrow">
+                        <div>
+                            <div class="sr-label">Selectable at kiosk check-in</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="kiosk_selectable" id="deptKioskSelectable" value="1" checked>
+                            <span class="track"><span class="thumb"></span></span>
+                        </label>
+                    </div>
+                    
+                    <div class="switchrow">
+                        <div>
+                            <div class="sr-label">Require NDA for visitors</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="require_nda" id="deptRequireNda" value="1">
+                            <span class="track"><span class="thumb"></span></span>
+                        </label>
+                    </div>
+                    
+                    <div class="switchrow">
+                        <div>
+                            <div class="sr-label">Escort required at all times</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="escort_required" id="deptEscortRequired" value="1">
+                            <span class="track"><span class="thumb"></span></span>
+                        </label>
                     </div>
                 </div>
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalAddDepartment')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Department</button>
+                <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </form>
     </div>
@@ -1820,6 +1905,26 @@
         document.getElementById('deptHead').value = dept.head_employee_id || '';
         document.getElementById('deptDesc').value = dept.description || '';
         document.getElementById('deptStatus').value = dept.status || 'active';
+        
+        document.getElementById('deptContactEmail').value = dept.contact_email || '';
+        document.getElementById('deptContactPhone').value = dept.contact_phone || '';
+        document.getElementById('deptKioskSelectable').checked = !!dept.kiosk_selectable;
+        document.getElementById('deptRequireNda').checked = !!dept.require_nda;
+        document.getElementById('deptEscortRequired').checked = !!dept.escort_required;
+
+        // Set Icon
+        const iconKey = dept.icon_key || 'briefcase';
+        const iconRadio = document.querySelector(`input[name="icon_key"][value="${iconKey}"]`);
+        if (iconRadio) iconRadio.checked = true;
+
+        // Set Floors
+        const floorSelect = document.getElementById('deptFloor');
+        if (dept.floors && dept.floors.length > 0) {
+            floorSelect.value = dept.floors[0].id;
+        } else {
+            floorSelect.value = "";
+        }
+        
         openModal('modalAddDepartment');
     }
 

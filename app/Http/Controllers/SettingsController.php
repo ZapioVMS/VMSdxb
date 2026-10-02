@@ -173,7 +173,7 @@ class SettingsController extends Controller
         }
 
         // More Tab Models
-        $departments = Department::with(['headEmployee'])
+        $departments = Department::with(['headEmployee', 'floors'])
             ->withCount('employees')
             ->orderBy('name')
             ->get();
@@ -189,10 +189,10 @@ class SettingsController extends Controller
         $visitorTypes = VisitorType::orderBy('name')->get();
         $idTypes = IdType::orderBy('name')->get();
         $shifts = Shift::orderBy('name')->get();
-        $floors = Floor::with(['building', 'areas'])->orderBy('name')->get();
+        $floors = Floor::with(['site', 'building', 'areas'])->orderBy('name')->get();
         $buildings = Building::orderBy('name')->get();
         $generalAreas = Area::where('organization_id', $orgId)->select('name')->distinct()->orderBy('name')->pluck('name')->toArray();
-        $employees = Employee::where('status', 'active')->orderBy('first_name')->get();
+        $employees = Employee::whereIn('status', ['active', 'on_leave'])->orderBy('first_name')->get();
         $kioskDevices = KioskDevice::with('site')->get();
 
         $activeTab = $request->get('tab', 'general');

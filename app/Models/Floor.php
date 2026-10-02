@@ -59,4 +59,11 @@ class Floor extends Model
     {
         return $this->areas->pluck('name')->implode(', ');
     }
+
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'department_floor')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
 }
