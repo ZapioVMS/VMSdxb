@@ -902,18 +902,18 @@
                                 @if ($dpt->description)
                                     <div class="cell-sub" style="margin-top: 2px;">{{ $dpt->description }}</div>
                                 @endif
-                                <div class="form-grid" style="margin-top: 14px; grid-template-columns: 1fr 1fr; row-gap: 16px; font-size: 12px;">
+                                <div class="form-grid" style="margin-top: 14px; row-gap: 4px; font-size: 12px;">
                                     <div>
-                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->employees_count ?? 0 }}</div>
+                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->employees_count }}</div>
                                         <div class="cell-sub">Members</div>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->visits_count ?? 0 }}</div>
-                                        <div class="cell-sub">Visits/Week</div>
+                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->code }}</div>
+                                        <div class="cell-sub">Code</div>
                                     </div>
-                                    <div style="grid-column: 1 / -1;">
-                                        <div style="font-weight: 700; font-size: 15px;">Floor {{ $dpt->floor_id ?? $loop->iteration }}</div>
-                                        <div class="cell-sub">Floor</div>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 15px;">{{ $dpt->headEmployee ? $dpt->headEmployee->first_name : '—' }}</div>
+                                        <div class="cell-sub">Dept Head</div>
                                     </div>
                                 </div>
                             </div>
@@ -959,12 +959,12 @@
                                         <div style="font-weight: 700;">{{ $site->capacity ?? 'Unlimited' }}</div>
                                     </div>
                                     <div>
-                                        <div class="cell-sub">Visiting hours</div>
-                                        <div style="font-weight: 700;">{{ is_array($site->visiting_hours) ? implode('-', $site->visiting_hours) : ($site->visiting_hours ?: '08:00 AM-07:00 PM') }}</div>
+                                        <div class="cell-sub">Staff</div>
+                                        <div style="font-weight: 700;">{{ $site->employees_count }}</div>
                                     </div>
                                     <div>
-                                        <div class="cell-sub">on-site now</div>
-                                        <div style="font-weight: 700; color: #0f766e;">{{ $site->active_visitors_count ?? 0 }}</div>
+                                        <div class="cell-sub">On-site Now</div>
+                                        <div style="font-weight: 700; color: var(--accent);">{{ $site->active_visitors_count ?? 0 }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -1114,7 +1114,7 @@
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 4px; align-items: center;">
-                                        <button type="button" class="btn btn-sm btn-ghost" onclick="editMeetingRoom({{ json_encode($room) }})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                        <button type="button" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
                                         <form method="POST" action="{{ route('settings.meeting_rooms.destroy', $room['id']) }}" onsubmit="return confirm('Remove meeting room?');" style="margin: 0;">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-ghost"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -1336,36 +1336,44 @@
                             <!-- Guest Arrival Alerts -->
                             <div class="card">
                                 <div class="section-title">Visitor Arrival Alerts</div>
-                                <div class="cell-sub">Triggered the moment a guest checks in at reception or kiosk.</div>
-                                <div class="switchrow"><div><div class="sr-label">Email Notification</div></div><label class="switch"><input type="checkbox" name="arrival_email" value="1" {{ !empty($hostAlerts['arrival']['email']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
-                                <div class="switchrow"><div><div class="sr-label">Push Notification</div></div><label class="switch"><input type="checkbox" name="arrival_push" value="1" {{ !empty($hostAlerts['arrival']['push']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
-                                <div class="switchrow"><div><div class="sr-label">SMS Alert to Host Mobile</div></div><label class="switch"><input type="checkbox" name="arrival_sms" value="1" {{ !empty($hostAlerts['arrival']['sms']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
-                                <div class="switchrow"><div><div class="sr-label">Desktop Browser Popup</div></div><label class="switch"><input type="checkbox" name="arrival_desktop" value="1" {{ !empty($hostAlerts['arrival']['desktop']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="cell-sub">Notify hosts the moment their visitor checks in.</div>
+                                <div class="switchrow"><div><div class="sr-label">Email notification</div></div><label class="switch"><input type="checkbox" name="arrival_email" value="1" {{ !empty($hostAlerts['arrival']['email']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="switchrow"><div><div class="sr-label">Push notification</div></div><label class="switch"><input type="checkbox" name="arrival_push" value="1" {{ !empty($hostAlerts['arrival']['push']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="switchrow"><div><div class="sr-label">SMS notification</div></div><label class="switch"><input type="checkbox" name="arrival_sms" value="1" {{ !empty($hostAlerts['arrival']['sms']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="switchrow"><div><div class="sr-label">Desktop notification</div></div><label class="switch"><input type="checkbox" name="arrival_desktop" value="1" {{ !empty($hostAlerts['arrival']['desktop']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
                                 <div class="field" style="margin-top: 12px;">
-                                    <label>Reminder if Host Does Not Acknowledge</label>
+                                    <label>Send reminder if no response</label>
                                     <select name="arrival_reminder_minutes">
                                         <option value="0" {{ ($hostAlerts['arrival']['reminder_minutes'] ?? '') == '0' ? 'selected' : '' }}>Do not repeat</option>
-                                        <option value="5" {{ ($hostAlerts['arrival']['reminder_minutes'] ?? '') == '5' ? 'selected' : '' }}>Repeat after 5 minutes</option>
-                                        <option value="10" {{ ($hostAlerts['arrival']['reminder_minutes'] ?? '') == '10' ? 'selected' : '' }}>Repeat after 10 minutes</option>
+                                        <option value="5" {{ ($hostAlerts['arrival']['reminder_minutes'] ?? '') == '5' ? 'selected' : '' }}>After 5 minutes</option>
+                                        <option value="10" {{ ($hostAlerts['arrival']['reminder_minutes'] ?? '') == '10' ? 'selected' : '' }}>After 10 minutes</option>
                                     </select>
                                 </div>
                             </div>
 
                             <!-- Pre-Registration Reminders -->
                             <div class="card">
-                                <div class="section-title">Pre-Registration Reminders</div>
-                                <div class="cell-sub">Upcoming visit schedules and morning agendas.</div>
-                                <div class="switchrow"><div><div class="sr-label">Notify on Invite Creation</div></div><label class="switch"><input type="checkbox" name="prereg_notify" value="1" {{ !empty($hostAlerts['pre_reg']['notify']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
-                                <div class="switchrow"><div><div class="sr-label">Morning Briefing Email</div></div><label class="switch"><input type="checkbox" name="prereg_briefing" value="1" {{ !empty($hostAlerts['pre_reg']['morning_briefing']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
-                                <div class="switchrow"><div><div class="sr-label">15-Minute Pre-Arrival Alert</div></div><label class="switch"><input type="checkbox" name="prereg_reminder_15" value="1" {{ !empty($hostAlerts['pre_reg']['reminder_15']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="section-title">Pre-registration Alerts</div>
+                                <div class="cell-sub">Keep hosts and front desk informed ahead of scheduled visits.</div>
+                                <div class="switchrow"><div><div class="sr-label">Notify host on new pre-registration</div></div><label class="switch"><input type="checkbox" name="prereg_notify" value="1" {{ !empty($hostAlerts['pre_reg']['notify']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="switchrow"><div><div class="sr-label">Send daily morning briefing to front desk</div></div><label class="switch"><input type="checkbox" name="prereg_briefing" value="1" {{ !empty($hostAlerts['pre_reg']['morning_briefing']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="switchrow"><div><div class="sr-label">Remind visitor 15 minutes before visit</div></div><label class="switch"><input type="checkbox" name="prereg_reminder_15" value="1" {{ !empty($hostAlerts['pre_reg']['reminder_15']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="field" style="margin-top: 12px;">
+                                    <label>Morning briefing time</label>
+                                    <select name="prereg_briefing_time">
+                                        <option value="07:00 AM" {{ ($hostAlerts['pre_reg']['briefing_time'] ?? '') == '07:00 AM' ? 'selected' : '' }}>07:00 AM</option>
+                                        <option value="08:00 AM" {{ ($hostAlerts['pre_reg']['briefing_time'] ?? '08:00 AM') == '08:00 AM' ? 'selected' : '' }}>08:00 AM</option>
+                                        <option value="09:00 AM" {{ ($hostAlerts['pre_reg']['briefing_time'] ?? '') == '09:00 AM' ? 'selected' : '' }}>09:00 AM</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Escalation Rules -->
                             <div class="card">
-                                <div class="section-title">Unattended Visitor Escalation</div>
-                                <div class="cell-sub">Action when host does not receive or acknowledge visitor</div>
+                                <div class="section-title">Escalation Rules</div>
+                                <div class="cell-sub">Make sure unattended visitors are never left waiting.</div>
                                 <div class="field">
-                                    <label>Escalate To</label>
+                                    <label>Escalate to</label>
                                     <select name="escalation_backup_host">
                                         <option value="Department Head">Department Head</option>
                                         <option value="Front Desk">Front Desk Receptionist</option>
@@ -1373,27 +1381,28 @@
                                     </select>
                                 </div>
                                 <div class="field">
-                                    <label>Escalate After</label>
+                                    <label>Escalate after</label>
                                     <select name="escalate_after_minutes">
                                         <option value="5">5 minutes</option>
                                         <option value="10" selected>10 minutes</option>
                                         <option value="15">15 minutes</option>
                                     </select>
                                 </div>
+                                <div class="switchrow" style="margin-top: 16px;"><div><div class="sr-label">Auto-approve pre-registered visitors on arrival</div></div><label class="switch"><input type="checkbox" name="escalation_auto_approve" value="1" {{ !empty($hostAlerts['escalation']['auto_approve']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
                             </div>
 
                             <!-- Checkout & Overstay -->
                             <div class="card">
-                                <div class="section-title">Checkout & Overstay Rules</div>
-                                <div class="cell-sub">Automatic duration monitoring</div>
-                                <div class="switchrow"><div><div class="sr-label">Notify Host on Checkout</div></div><label class="switch"><input type="checkbox" name="checkout_notify" value="1" {{ !empty($hostAlerts['checkout']['notify_on_checkout']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
-                                <div class="switchrow"><div><div class="sr-label">Alert Security on Overstay</div></div><label class="switch"><input type="checkbox" name="checkout_overstay_alert" value="1" {{ !empty($hostAlerts['checkout']['alert_on_overstay']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="section-title">Checkout & Overstay</div>
+                                <div class="cell-sub">Track visitors who stay longer than expected.</div>
+                                <div class="switchrow"><div><div class="sr-label">Notify host when visitor checks out</div></div><label class="switch"><input type="checkbox" name="checkout_notify" value="1" {{ !empty($hostAlerts['checkout']['notify_on_checkout']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
+                                <div class="switchrow"><div><div class="sr-label">Alert if visitor overstays</div></div><label class="switch"><input type="checkbox" name="checkout_overstay_alert" value="1" {{ !empty($hostAlerts['checkout']['alert_on_overstay']) ? 'checked' : '' }}><span class="track"><span class="thumb"></span></span></label></div>
                                 <div class="field" style="margin-top: 12px;">
-                                    <label>Overstay Grace Period</label>
+                                    <label>Overstay threshold</label>
                                     <select name="checkout_overstay_minutes">
-                                        <option value="30">30 minutes past scheduled end</option>
-                                        <option value="60" selected>60 minutes past scheduled end</option>
-                                        <option value="120">120 minutes past scheduled end</option>
+                                        <option value="30">30 minutes</option>
+                                        <option value="60" selected>60 minutes</option>
+                                        <option value="120">120 minutes</option>
                                     </select>
                                 </div>
                             </div>
@@ -1563,30 +1572,25 @@
                         <input type="number" name="floors" id="branchFloors" value="" min="1">
                     </div>
                     <div class="field">
-                        @php
-                            $times = [];
-                            $start = strtotime('12:00 AM');
-                            $end = strtotime('11:45 PM');
-                            while ($start <= $end) {
-                                $times[] = date('h:i A', $start);
-                                $start = strtotime('+15 minutes', $start);
-                            }
-                        @endphp
                         <label>Visiting hours (from)</label>
                         <select name="visiting_hours_from" id="branchVisitsFrom">
                             <option value="">Select Time</option>
-                            @foreach($times as $time)
-                                <option value="{{ $time }}">{{ $time }}</option>
-                            @endforeach
+                            <option value="07:00 AM">07:00 AM</option>
+                            <option value="08:00 AM">08:00 AM</option>
+                            <option value="09:00 AM">09:00 AM</option>
+                            <option value="10:00 AM">10:00 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
                         </select>
                     </div>
                     <div class="field">
                         <label>Visiting hours (to)</label>
                         <select name="visiting_hours_to" id="branchVisitsTo">
                             <option value="">Select Time</option>
-                            @foreach($times as $time)
-                                <option value="{{ $time }}">{{ $time }}</option>
-                            @endforeach
+                            <option value="04:00 PM">04:00 PM</option>
+                            <option value="05:00 PM">05:00 PM</option>
+                            <option value="06:00 PM">06:00 PM</option>
+                            <option value="07:00 PM">07:00 PM</option>
+                            <option value="08:00 PM">08:00 PM</option>
                         </select>
                     </div>
                     <div class="field">
@@ -1746,12 +1750,11 @@
     <div class="modal-backdrop" onclick="closeModal('modalAddRoom')"></div>
     <div class="modal-panel" style="max-width: 500px;">
         <div class="modal-head">
-            <h3 id="roomModalTitle">Add Meeting Room</h3>
+            <h3>Add Meeting Room</h3>
             <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalAddRoom')">✕</button>
         </div>
         <form method="POST" action="{{ route('settings.meeting_rooms.store') }}" id="formAddRoom">
             @csrf
-            <input type="hidden" name="_method" id="roomMethod" value="POST">
             <div class="modal-body">
                 <div class="field">
                     <label>Room Name</label>
@@ -1878,8 +1881,13 @@
                 </div>
                 <div class="field">
                     <label>Areas / Rooms</label>
-                    <input type="text" name="areas" id="floorAreasInput" placeholder="e.g. Reception, Meeting Room A, Open Office">
-                    <div class="cell-sub" style="margin-top: 4px;">Comma-separated list</div>
+                    <input type="hidden" name="areas" id="floorAreas">
+                    <div id="floorTagsWrapper" class="tag-input-container" onclick="document.getElementById('floorTagInput').focus()">
+                        <div id="floorTagsList" style="display: contents;"></div>
+                        <input type="text" id="floorTagInput" placeholder="Type area or select meeting room, press Enter..." autocomplete="off">
+                    </div>
+                    <div id="floorRoomSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+                    <div class="cell-sub" style="margin-top: 4px;">Comma-separated list, e.g. Reception, Meeting Room A, Open Office</div>
                 </div>
             </div>
             <div class="modal-foot">
@@ -1998,41 +2006,9 @@
         const modal = document.getElementById(id);
         if (modal) modal.classList.add('open');
     }
-    document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll('.modal-root form').forEach(f => {
-            f.dataset.defaultAction = f.action;
-        });
-    });
-
     function closeModal(id) {
         const modal = document.getElementById(id);
-        if (modal) {
-            modal.classList.remove('open');
-            const form = modal.querySelector('form');
-            if (form) {
-                form.reset();
-                if (form.dataset.defaultAction) {
-                    form.action = form.dataset.defaultAction;
-                }
-                const methodField = form.querySelector('input[name="_method"]');
-                if (methodField) {
-                    methodField.value = 'POST';
-                }
-                const title = modal.querySelector('.modal-head h3');
-                if (title && title.innerText.startsWith('Edit ')) {
-                    title.innerText = title.innerText.replace('Edit ', 'Add ');
-                }
-                
-                // Clear any dynamic elements like tags-input if they exist
-                const tagsContainer = modal.querySelector('.tags-input-container');
-                if (tagsContainer && typeof window.currentFloorTags !== 'undefined') {
-                    window.currentFloorTags = [];
-                    if (typeof renderFloorTags === 'function') {
-                        renderFloorTags();
-                    }
-                }
-            }
-        }
+        if (modal) modal.classList.remove('open');
     }
 
     // Edit Department helper
@@ -2459,23 +2435,14 @@
         document.getElementById('floorMethod').value = 'POST';
         document.getElementById('floorName').value = '';
         document.getElementById('floorDescription').value = '';
-        if (document.getElementById('floorAreasInput')) document.getElementById('floorAreasInput').value = '';
+        currentFloorTags = [];
+        renderFloorTags();
         if (siteId) {
             document.getElementById('floorSiteId').value = siteId;
         }
         hideFloorNameSuggestions();
         validateFloorName();
         openModal('modalAddFloor');
-    }
-
-    function editMeetingRoom(room) {
-        document.getElementById('roomModalTitle').innerText = 'Edit Meeting Room';
-        document.getElementById('formAddRoom').action = '/settings/meeting-rooms/' + room.id;
-        document.getElementById('roomMethod').value = 'PUT';
-        document.getElementById('roomName').value = room.name || '';
-        document.getElementById('roomSiteId').value = room.site_id || '';
-        document.getElementById('roomCapacity').value = room.capacity || 8;
-        openModal('modalAddRoom');
     }
 
     function editFloor(fl) {
@@ -2490,16 +2457,14 @@
         }
         document.getElementById('floorDescription').value = fl.description || '';
         
-        // Populate existing areas text
-        let areasStr = '';
+        // Populate existing areas as tags
+        currentFloorTags = [];
         if (fl.areas && Array.isArray(fl.areas)) {
-            areasStr = fl.areas.map(a => a.name).filter(Boolean).join(', ');
+            currentFloorTags = fl.areas.map(a => a.name).filter(Boolean);
         } else if (fl.areas_text) {
-            areasStr = fl.areas_text;
+            currentFloorTags = fl.areas_text.split(',').map(s => s.trim()).filter(Boolean);
         }
-        if (document.getElementById('floorAreasInput')) {
-            document.getElementById('floorAreasInput').value = areasStr;
-        }
+        renderFloorTags();
         hideFloorNameSuggestions();
         validateFloorName();
 
