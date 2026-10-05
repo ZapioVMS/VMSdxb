@@ -79,4 +79,14 @@ class Organization extends Model
     {
         return $this->hasMany(NotificationTemplate::class, 'organization_id');
     }
+
+    public function visitNotificationSetting(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VisitNotificationSetting::class, 'organization_id');
+    }
+
+    public function visitApprovalSetting(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VisitApprovalSetting::class, 'organization_id');
+    }
 }

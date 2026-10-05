@@ -13,6 +13,8 @@ use App\Models\KioskDevice;
 use App\Models\MeetingRoom;
 use App\Models\Organization;
 use App\Models\OrganizationSetting;
+use App\Models\VisitNotificationSetting;
+use App\Models\VisitApprovalSetting;
 use App\Models\PackageSize;
 use App\Models\Scopes\TenantScope;
 use App\Models\Shift;
@@ -108,12 +110,8 @@ class SettingsController extends Controller
         ];
 
         // Defaults for host alerts
-        $hostAlerts = $settingsRaw['host_alerts'] ?? [
-            'arrival' => ['email' => true, 'push' => true, 'sms' => false, 'desktop' => false, 'reminder_minutes' => '5'],
-            'pre_reg' => ['notify' => true, 'morning_briefing' => true, 'reminder_15' => true, 'briefing_time' => '08:00'],
-            'escalation' => ['backup_host' => 'Department Head', 'escalate_after_minutes' => '10', 'auto_approve_15' => false],
-            'checkout' => ['notify_on_checkout' => true, 'alert_on_overstay' => true, 'overstay_threshold_minutes' => '60'],
-        ];
+        $vns = VisitNotificationSetting::firstOrCreate(['organization_id' => $orgId]);
+        $vas = VisitApprovalSetting::firstOrCreate(['organization_id' => $orgId]);
 
         // Meeting Rooms
         if (Schema::hasTable('meeting_rooms')) {
@@ -205,7 +203,8 @@ class SettingsController extends Controller
             'security',
             'notifications',
             'privacy',
-            'hostAlerts',
+            'vns',
+            'vas',
             'meetingRooms',
             'deliveryCarriers',
             'packageSizes',
@@ -415,39 +414,53 @@ class SettingsController extends Controller
     /**
      * Save Host Notification Rules.
      */
-    public function updateHostRules(Request $request): RedirectResponse
+        public function updateHostRules(Request $request): RedirectResponse
     {
         $orgId = TenantScope::getTenantId() ?? 1;
 
-        $rules = [
-            'arrival' => [
-                'email' => $request->boolean('arrival_email'),
-                'push' => $request->boolean('arrival_push'),
-                'sms' => $request->boolean('arrival_sms'),
-                'desktop' => $request->boolean('arrival_desktop'),
-                'reminder_minutes' => $request->input('arrival_reminder_minutes', '5'),
-            ],
-            'pre_reg' => [
-                'notify' => $request->boolean('prereg_notify'),
-                'morning_briefing' => $request->boolean('prereg_briefing'),
-                'reminder_15' => $request->boolean('prereg_reminder_15'),
-                'briefing_time' => $request->input('prereg_briefing_time', '08:00'),
-            ],
-            'escalation' => [
-                'backup_host' => $request->input('escalation_backup_host', 'Department Head'),
-                'escalate_after_minutes' => $request->input('escalate_after_minutes', '10'),
-                'auto_approve_15' => $request->boolean('escalation_auto_approve'),
-            ],
-            'checkout' => [
-                'notify_on_checkout' => $request->boolean('checkout_notify'),
-                'alert_on_overstay' => $request->boolean('checkout_overstay_alert'),
-                'overstay_threshold_minutes' => $request->input('checkout_overstay_minutes', '60'),
-            ],
-        ];
+        $validated = $request->validate([
+            'arrival_reminder_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
+            'prereg_briefing_time' => ['nullable', 'date_format:H:i A', 'date_format:H:i'],
+            'escalation_backup_host' => ['required', \Illuminate\Validation\Rule::in(['department_head', 'front_desk', 'security_team', 'administrator'])],
+            'escalate_after_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+            'checkout_overstay_minutes' => ['required', 'integer', 'min:1', 'max:10080'],
+        ]);
 
-        OrganizationSetting::updateOrCreate(
-            ['organization_id' => $orgId, 'key' => 'host_alerts'],
-            ['value' => $rules]
+        $reminderMinutes = $request->input('arrival_reminder_minutes');
+        if ($reminderMinutes == 0) {
+            $reminderMinutes = null;
+        }
+
+        VisitNotificationSetting::updateOrCreate(
+            ['organization_id' => $orgId],
+            [
+                'arrival_email_enabled' => $request->boolean('arrival_email'),
+                'arrival_push_enabled' => $request->boolean('arrival_push'),
+                'arrival_sms_enabled' => $request->boolean('arrival_sms'),
+                'arrival_desktop_enabled' => $request->boolean('arrival_desktop'),
+                'arrival_reminder_minutes' => $reminderMinutes,
+
+                'prereg_host_notification_enabled' => $request->boolean('prereg_notify'),
+                'morning_briefing_enabled' => $request->boolean('prereg_briefing'),
+                'morning_briefing_time' => $request->input('prereg_briefing_time', '08:00'),
+                'prereg_visitor_reminder_enabled' => $request->boolean('prereg_reminder_15'),
+                'prereg_visitor_reminder_minutes' => 15,
+
+                'escalation_enabled' => true,
+                'escalation_recipient_code' => $request->input('escalation_backup_host', 'department_head'),
+                'escalation_after_minutes' => $request->input('escalate_after_minutes', 10),
+
+                'checkout_notification_enabled' => $request->boolean('checkout_notify'),
+                'overstay_alert_enabled' => $request->boolean('checkout_overstay_alert'),
+                'overstay_threshold_minutes' => $request->input('checkout_overstay_minutes', 60),
+            ]
+        );
+
+        VisitApprovalSetting::updateOrCreate(
+            ['organization_id' => $orgId],
+            [
+                'preregistered_arrival_approval_mode' => $request->boolean('escalation_auto_approve') ? 'automatic' : 'host',
+            ]
         );
 
         return redirect()->route('settings.index', ['tab' => 'hostAlerts'])->with('success', 'Host Notification Rules updated.');
