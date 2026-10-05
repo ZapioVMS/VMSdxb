@@ -420,7 +420,7 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'arrival_reminder_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
-            'prereg_briefing_time' => ['nullable', 'date_format:H:i A', 'date_format:H:i'],
+            'prereg_briefing_time' => ['nullable', 'date_format:h:i A'],
             'escalation_backup_host' => ['required', \Illuminate\Validation\Rule::in(['department_head', 'front_desk', 'security_team', 'administrator'])],
             'escalate_after_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
             'checkout_overstay_minutes' => ['required', 'integer', 'min:1', 'max:10080'],
@@ -442,7 +442,7 @@ class SettingsController extends Controller
 
                 'prereg_host_notification_enabled' => $request->boolean('prereg_notify'),
                 'morning_briefing_enabled' => $request->boolean('prereg_briefing'),
-                'morning_briefing_time' => $request->input('prereg_briefing_time', '08:00'),
+                'morning_briefing_time' => $request->input('prereg_briefing_time') ? \Carbon\Carbon::createFromFormat('h:i A', $request->input('prereg_briefing_time'))->format('H:i:s') : '08:00:00',
                 'prereg_visitor_reminder_enabled' => $request->boolean('prereg_reminder_15'),
                 'prereg_visitor_reminder_minutes' => 15,
 
