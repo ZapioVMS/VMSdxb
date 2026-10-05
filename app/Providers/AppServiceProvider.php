@@ -25,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Share active sites with all views for topbar site dropdown
         View::composer('*', function ($view) {
+            $globalBranding = \App\Models\OrganizationSetting::where('key', 'branding')->value('value') ?? [];
+            $view->with('globalBranding', $globalBranding);
+            
             if (auth()->check()) {
                 $globalSites = Site::where('status', 'active')->orderBy('name')->get();
                 $view->with('globalSites', $globalSites);

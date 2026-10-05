@@ -281,6 +281,10 @@ class SettingsController extends Controller
             'display_name' => ['nullable', 'string', 'max:255'],
             'primary_color' => ['required', 'string', 'max:20'],
             'logo' => ['nullable', 'image', 'max:3072'],
+            'welcome_message' => ['nullable', 'string', 'max:255'],
+            'welcome_subtitle' => ['nullable', 'string', 'max:255'],
+            'background_image' => ['nullable', 'image', 'max:5120'],
+            'favicon' => ['nullable', 'image', 'max:1024'],
         ]);
 
         $setting = OrganizationSetting::firstOrNew(['organization_id' => $orgId, 'key' => 'branding']);
@@ -292,11 +296,27 @@ class SettingsController extends Controller
             $logoUrl = Storage::url($path);
         }
 
+        $backgroundUrl = $currentValue['background_url'] ?? null;
+        if ($request->hasFile('background_image')) {
+            $bgPath = $request->file('background_image')->store('branding', 'public');
+            $backgroundUrl = Storage::url($bgPath);
+        }
+
+        $faviconUrl = $currentValue['favicon_url'] ?? null;
+        if ($request->hasFile('favicon')) {
+            $favPath = $request->file('favicon')->store('branding', 'public');
+            $faviconUrl = Storage::url($favPath);
+        }
+
         $setting->value = [
             'company_name' => $validated['company_name'],
             'display_name' => $validated['display_name'] ?? $validated['company_name'],
             'primary_color' => $validated['primary_color'],
             'logo_url' => $logoUrl,
+            'welcome_message' => $validated['welcome_message'] ?? 'Welcome to Zapio',
+            'welcome_subtitle' => $validated['welcome_subtitle'] ?? 'Please check in below to notify your host',
+            'background_url' => $backgroundUrl,
+            'favicon_url' => $faviconUrl,
         ];
         $setting->save();
 
