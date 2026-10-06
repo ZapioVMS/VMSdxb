@@ -118,6 +118,25 @@
 
         .avatar-placeholder { width: 120px; height: 120px; border-radius: 16px; background: var(--surface-2); border: 1.5px dashed var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px; font-weight: 700; color: var(--accent); }
     </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 42px;
+            padding-left: 14px;
+            color: var(--text-primary);
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+            right: 8px;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -173,12 +192,8 @@
                             <legend>VISITOR DETAILS</legend>
                             <div class="form-grid">
                                 <div class="field">
-                                    <label for="first_name">First Name *</label>
-                                    <input type="text" id="first_name" name="first_name" value="{{ old('first_name') }}" required autofocus oninput="checkWatchlistName(this.value)">
-                                </div>
-                                <div class="field">
-                                    <label for="last_name">Last Name</label>
-                                    <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}">
+                                    <label for="full_name">Fullname *</label>
+                                    <input type="text" id="full_name" name="full_name" value="{{ old('full_name') }}" required autofocus oninput="checkWatchlistName(this.value)">
                                 </div>
                                 <div class="field">
                                     <label for="id_type_id">ID Type *</label>
@@ -208,17 +223,15 @@
                                 <div class="field">
                                     <label for="phone">Phone Number</label>
                                     <div class="phone-group">
-                                        <select name="phone_code">
-                                            <option value="971">+971 (UAE)</option>
-                                            <option value="966">+966 (KSA)</option>
-                                            <option value="974">+974 (QA)</option>
-                                            <option value="1">+1 (US)</option>
-                                            <option value="44">+44 (UK)</option>
+                                        <select name="phone_code" id="phone_code">
+                                            @foreach ($phoneCountries as $pc)
+                                                <option value="{{ $pc->isd_code }}">+{{ $pc->isd_code }}</option>
+                                            @endforeach
                                         </select>
                                         <input type="tel" name="phone" value="{{ old('phone') }}" placeholder="50 000 0000">
                                     </div>
                                 </div>
-                                <div class="field span2">
+                                <div class="field">
                                     <label for="email">Email Address (Optional)</label>
                                     <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="visitor@company.com">
                                 </div>
@@ -389,7 +402,7 @@
         }
 
         function takePhoto() {
-            const fname = document.getElementById('first_name').value || 'V';
+            const fname = document.getElementById('full_name').value || 'V';
             const avatar = document.getElementById('photoAvatar');
             avatar.innerHTML = fname.charAt(0).toUpperCase();
         }
@@ -400,14 +413,18 @@
         @include('partials.invite_modal_js')
 
         function prefillCheckinForm(data) {
-            if(data.first_name) document.getElementById('first_name').value = data.first_name;
-            if(data.last_name) document.getElementById('last_name').value = data.last_name;
+            if(data.first_name) {
+                const lastName = data.last_name ? ' ' + data.last_name : '';
+                document.getElementById('full_name').value = data.first_name + lastName;
+            }
             if(data.id_type_id) document.getElementById('id_type_id').value = data.id_type_id;
             if(data.id_number) document.getElementById('id_number').value = data.id_number;
             if(data.nationality_id) document.getElementById('nationality_id').value = data.nationality_id;
             
-            const phoneCodeSelect = document.querySelector('select[name="phone_code"]');
-            if(data.phone_code && phoneCodeSelect) phoneCodeSelect.value = data.phone_code;
+            const phoneCodeSelect = document.getElementById('phone_code');
+            if(data.phone_code && phoneCodeSelect) {
+                $(phoneCodeSelect).val(data.phone_code).trigger('change');
+            }
             
             const phoneInput = document.querySelector('input[name="phone"]') || document.getElementById('phone');
             if(data.phone && phoneInput) phoneInput.value = data.phone;
@@ -501,6 +518,17 @@
                 });
             }
         })();
+    </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#nationality_id').select2({
+                placeholder: 'Search country...',
+                allowClear: true
+            });
+            $('#phone_code').select2();
+        });
     </script>
 </body>
 </html>

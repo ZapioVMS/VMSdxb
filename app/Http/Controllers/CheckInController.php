@@ -41,6 +41,7 @@ class CheckInController extends Controller
             $idTypes = IdType::all();
         }
         $countries = Country::orderBy('name')->get();
+        $phoneCountries = Country::whereNotNull('isd_code')->where('isd_code', '!=', '')->orderByRaw("CASE WHEN iso_code = 'AE' THEN 1 ELSE 2 END")->orderBy('name')->get();
         $purposes = VisitPurpose::where('status', 'active')->get();
         $employees = Employee::with(['department', 'site'])
             ->where('status', 'active')
@@ -66,6 +67,7 @@ class CheckInController extends Controller
             'sites',
             'idTypes',
             'countries',
+            'phoneCountries',
             'purposes',
             'employees',
             'visitorTypes',
@@ -81,8 +83,7 @@ class CheckInController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255', 'min:2'],
-            'last_name' => ['nullable', 'string', 'max:255'],
+            'full_name' => ['required', 'string', 'max:255', 'min:2'],
             'email' => ['nullable', 'email', 'max:254'],
             'phone' => ['nullable', 'string', 'max:32'],
             'phone_code' => ['nullable', 'string', 'max:8'],
@@ -133,11 +134,15 @@ class CheckInController extends Controller
                     ->first();
             }
 
+            $nameParts = explode(' ', trim($validated['full_name']), 2);
+            $firstName = $nameParts[0];
+            $lastName = $nameParts[1] ?? null;
+
             if (!$visitor) {
                 $visitor = Visitor::create([
                     'organization_id' => $orgId,
-                    'first_name' => $validated['first_name'],
-                    'last_name' => $validated['last_name'] ?? null,
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
                     'email' => $validated['email'] ?? null,
                     'phone' => $fullPhone,
                     'nationality_id' => $validated['nationality_id'] ?? null,
@@ -148,8 +153,8 @@ class CheckInController extends Controller
                 ]);
             } else {
                 $visitor->update([
-                    'first_name' => $validated['first_name'],
-                    'last_name' => $validated['last_name'] ?? $visitor->last_name,
+                    'first_name' => $firstName,
+                    'last_name' => $lastName ?? $visitor->last_name,
                     'company_name' => $validated['company_name'] ?? $visitor->company_name,
                     'id_type_id' => $validated['id_type_id'],
                     'id_number' => $validated['id_number'],
