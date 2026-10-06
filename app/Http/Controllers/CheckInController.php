@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Invitation;
+use Carbon\Carbon;
 use App\Models\Badge;
 use App\Models\BadgeTemplate;
 use App\Models\Country;
+use App\Models\Department;
+use App\Models\MeetingRoom;
 use App\Models\Employee;
 use App\Models\IdType;
 use App\Models\Site;
@@ -43,7 +47,20 @@ class CheckInController extends Controller
             ->get()
             ->sortBy('first_name')
             ->values();
-        $visitorTypes = VisitorType::where('status', 'active')->get();
+                        $visitorTypes = VisitorType::where('status', 'active')->get();
+        $departments = Department::all();
+        $meetingRooms = \Illuminate\Support\Facades\Schema::hasTable('meeting_rooms')
+            ? MeetingRoom::with(['site', 'floor'])->orderBy('name')->get()
+            : collect([]);
+
+        $expectedToday = Invitation::with([
+            'visit.visitor',
+            'visit.hostEmployee',
+            'visit.purpose'
+        ])->whereHas('visit', function ($q) use ($orgId) {
+            $q->where('organization_id', $orgId)
+              ->whereDate('scheduled_start_at', Carbon::today());
+        })->where('status', '!=', 'cancelled')->get();
 
         return view('visitors.checkin', compact(
             'sites',
@@ -51,7 +68,10 @@ class CheckInController extends Controller
             'countries',
             'purposes',
             'employees',
-            'visitorTypes'
+            'visitorTypes',
+            'expectedToday',
+            'departments',
+            'meetingRooms'
         ));
     }
 

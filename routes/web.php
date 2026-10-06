@@ -30,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     // Visitor Log & Check-In Routes
+    Route::get('/visitors/search', [VisitorLogController::class, 'search'])->name('visitors.search');
     Route::get('/visitors', [VisitorLogController::class, 'index'])->name('visitors.index');
     Route::get('/visitors/export', [VisitorLogController::class, 'export'])->name('visitors.export');
     Route::get('/visitors/check-in', [CheckInController::class, 'create'])->name('visitors.checkin');

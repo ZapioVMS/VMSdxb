@@ -323,8 +323,9 @@ class PreRegistrationController extends Controller
     /**
      * Update the specified pre-registration.
      */
-    public function update(Request $request, Invitation $invitation): RedirectResponse
+        public function update(Request $request, Invitation $invitation): RedirectResponse
     {
+        \Log::info('Update Request Data:', $request->all());
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'first_name' => ['nullable', 'string', 'max:255'],
