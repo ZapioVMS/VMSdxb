@@ -71,4 +71,19 @@ class Employee extends Model
     {
         return trim($this->first_name . ' ' . ($this->last_name ?? ''));
     }
+
+    public function leaves(): HasMany
+    {
+        return $this->hasMany(EmployeeLeave::class, 'employee_id');
+    }
+
+    public function isOnLeaveOn($date): bool
+    {
+        return $this->leaves()->whereDate('date', $date)->exists();
+    }
+
+    public function getIsOnLeaveTodayAttribute(): bool
+    {
+        return $this->isOnLeaveOn(today());
+    }
 }

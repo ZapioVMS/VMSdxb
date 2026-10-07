@@ -154,7 +154,7 @@
                             <select id="inv_host_employee_id" name="host_employee_id" required>
                                 <option value="">Select Host Employee</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
+                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}">data-leaves="{{ $employee->leaves ? $employee->leaves->pluck('date')->map(fn($d) => $d->format('Y-m-d'))->join(',') : '' }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -274,16 +274,31 @@
 
         function filterHostEmployeesBySite(siteId) {
             const hostSelect = document.getElementById('inv_host_employee_id');
+            if (!hostSelect) return;
             const options = hostSelect.querySelectorAll('option');
+            const visitDate = document.getElementById('inv_visit_date') ? document.getElementById('inv_visit_date').value : '';
+
             options.forEach(opt => {
                 if (!opt.value) return; // Keep "Select Host Employee"
                 const empSite = opt.getAttribute('data-site');
-                if (!siteId || siteId === 'all' || empSite === siteId) {
-                    opt.style.display = '';
-                } else {
-                    opt.style.display = 'none';
+                const leavesStr = opt.getAttribute('data-leaves') || '';
+                const leaves = leavesStr ? leavesStr.split(',') : [];
+
+                let show = true;
+                if (siteId && siteId !== 'all' && empSite !== siteId) {
+                    show = false;
                 }
+                if (visitDate && leaves.includes(visitDate)) {
+                    show = false;
+                }
+
+                opt.style.display = show ? '' : 'none';
             });
+
+            const selectedOpt = hostSelect.options[hostSelect.selectedIndex];
+            if (selectedOpt && selectedOpt.style.display === 'none') {
+                hostSelect.value = '';
+            }
         }
 
         const allMeetingRoomsData = @json($meetingRooms);

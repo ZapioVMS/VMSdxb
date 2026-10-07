@@ -98,6 +98,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::post('/employees/{employee}/leave', [EmployeeController::class, 'toggleLeave'])->name('employees.leave');
+    Route::get('/employees/{employee}/attendance', [EmployeeController::class, 'attendance'])->name('employees.attendance');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 
     // Lookup Settings Management (GET redirects to Settings Lookups)

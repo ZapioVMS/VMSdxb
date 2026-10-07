@@ -348,18 +348,17 @@
 
             let matchCount = 0;
             allEmployees.forEach(emp => {
-                // Include employee if they belong to the selected site OR if they have no site assigned (null)
-                if (!selectedSiteId || !emp.site_id || String(emp.site_id) === String(selectedSiteId)) {
-                    const opt = document.createElement('option');
-                    opt.value = emp.id;
-                    const deptTag = emp.department ? ` — ${emp.department.name}` : '';
-                    opt.textContent = `${emp.first_name} ${emp.last_name || ''}${deptTag}`;
-                    if (String(emp.id) === String(currentSelected)) {
-                        opt.selected = true;
-                    }
-                    empSelect.appendChild(opt);
-                    matchCount++;
+                const opt = document.createElement('option');
+                opt.value = emp.id;
+                const deptTag = emp.department ? ` — ${emp.department.name}` : '';
+                const siteTag = emp.site ? ` (${emp.site.name})` : '';
+                opt.textContent = `${emp.first_name} ${emp.last_name || ''}${deptTag}${siteTag}`;
+                opt.setAttribute('data-site', emp.site_id);
+                if (String(emp.id) === String(currentSelected)) {
+                    opt.selected = true;
                 }
+                empSelect.appendChild(opt);
+                matchCount++;
             });
 
             if (matchCount === 0) {

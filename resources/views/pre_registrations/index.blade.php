@@ -533,7 +533,7 @@
                         </div>
                         <div class="field">
                             <label for="inv_site_id">Branch / Location *</label>
-                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value); filterMeetingRoomsBySite(this.value);">
+                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployees(); filterMeetingRoomsBySite(this.value);">
                                 @foreach ($sites as $site)
                                     <option value="{{ $site->id }}">{{ $site->name }}</option>
                                 @endforeach
@@ -763,7 +763,7 @@
             document.getElementById('inv_meeting_room').value = data.meeting_room || '';
             document.getElementById('inv_expected_visitor_count').value = data.expected_visitor_count || 1;
 
-            filterHostEmployeesBySite(data.site_id);
+            filterHostEmployees();
             filterMeetingRoomsBySite(data.site_id);
             document.getElementById('inv_host_employee_id').value = data.host_employee_id || '';
 

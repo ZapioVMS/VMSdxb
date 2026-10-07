@@ -132,7 +132,7 @@ class PreRegistrationController extends Controller
         // Form Master Data for Add/Edit Modal
         $sites = Site::where('status', 'active')->get();
         $departments = Department::all();
-        $employees = Employee::with('site')->get();
+        $employees = Employee::with(['site', 'leaves'])->get();
         $purposes = VisitPurpose::all();
         $visitorTypes = VisitorType::where('status', 'active')->get();
         if ($visitorTypes->isEmpty()) {

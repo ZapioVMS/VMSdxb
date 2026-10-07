@@ -189,7 +189,7 @@
                             <select id="inv_host_employee_id" name="host_employee_id" required>
                                 <option value="">Select Host Employee</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
+                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}" data-leaves="{{ $employee->leaves ? $employee->leaves->pluck('date')->map(fn($d) => $d->format('Y-m-d'))->join(',') : '' }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
                                 @endforeach
                             </select>
                         </div>
