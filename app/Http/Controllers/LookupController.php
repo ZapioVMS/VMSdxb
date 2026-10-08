@@ -189,17 +189,30 @@ class LookupController extends Controller
     }
 
     // --- SHIFTS ---
-    public function storeShift(Request $request): RedirectResponse
+    public function storeShift(Request $request)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'start_time' => ['required', 'string'],
             'end_time' => ['required', 'string'],
+            'effective_from' => ['nullable', 'date'],
+            'effective_to' => ['nullable', 'date'],
             'grace_minutes' => ['nullable', 'integer', 'min:0'],
-            'status' => ['required', 'string', 'in:active,inactive'],
+            'status' => ['nullable', 'string', 'in:active,inactive'],
         ]);
 
-        Shift::create(array_merge($validated, ['organization_id' => TenantScope::getTenantId()]));
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'active';
+        }
+        if (!isset($validated['grace_minutes'])) {
+            $validated['grace_minutes'] = 0;
+        }
+
+        $shift = Shift::create(array_merge($validated, ['organization_id' => TenantScope::getTenantId()]));
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'shift' => $shift]);
+        }
 
         return redirect()->route('settings.index', ['tab' => 'shifts'])->with('success', 'Shift schedule created successfully.');
     }

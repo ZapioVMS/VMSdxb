@@ -20,6 +20,8 @@ class Shift extends Model
         'name',
         'start_time',
         'end_time',
+        'effective_from',
+        'effective_to',
         'grace_minutes',
         'status',
     ];

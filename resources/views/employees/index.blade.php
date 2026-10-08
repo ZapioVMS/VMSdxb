@@ -955,33 +955,249 @@
         </div>
     </div>
 
-    <!-- MODAL 6: SHIFT MODAL -->
+        <!-- MODAL 6: SHIFT MODAL -->
     <div id="modalShift" class="modal-root">
         <div class="modal-backdrop" onclick="closeModal('modalShift')"></div>
-        <div class="modal-panel">
-            <div class="modal-head">
-                <h3 id="shiftModalTitle">Add Shift</h3>
-                <button type="button" class="icon-btn btn-ghost" onclick="closeModal('modalShift')">✕</button>
+        <div class="modal-panel" style="max-width:560px; padding:24px; border-radius:12px;">
+            <div class="modal-head" style="margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid #eaeaea;">
+                <h3 id="shiftModalTitle" style="font-size:18px; font-weight:700;">Add Shift</h3>
+                <button type="button" class="icon-btn btn-ghost" onclick="closeModal('modalShift')">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:#666;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
             </div>
             <div class="modal-body">
-                <div class="field" style="margin-bottom:12px;">
-                    <label>Shift Name *</label>
-                    <input type="text" id="shiftName" placeholder="e.g. Rotating Shift">
+                <div class="field" style="margin-bottom:20px;">
+                    <label style="font-size:13px; font-weight:600; color:#333; margin-bottom:6px; display:block;">Shift Name</label>
+                    <input type="text" id="shiftName" class="form-control" placeholder="e.g. Night Shift" style="width:100%; padding:10px 12px; border:1px solid #dcdcdc; border-radius:8px; font-size:14px; color:#333;">
                 </div>
-                <div class="form-grid">
+                
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
                     <div class="field">
-                        <label>Start Time</label>
-                        <input type="time" id="shiftStartTime" value="08:00">
+                        <label style="font-size:13px; font-weight:600; color:#333; margin-bottom:6px; display:block;">Start Time</label>
+                        <select id="shiftStartTime" class="form-select" style="width:100%; padding:10px 12px; border:1px solid #dcdcdc; border-radius:8px; font-size:14px; color:#333; appearance:none; background:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')') no-repeat right 12px center; background-color:#fff;">
+                            <option value="00:00:00">12:00 AM</option>
+<option value="00:15:00">12:15 AM</option>
+<option value="00:30:00">12:30 AM</option>
+<option value="00:45:00">12:45 AM</option>
+<option value="01:00:00">01:00 AM</option>
+<option value="01:15:00">01:15 AM</option>
+<option value="01:30:00">01:30 AM</option>
+<option value="01:45:00">01:45 AM</option>
+<option value="02:00:00">02:00 AM</option>
+<option value="02:15:00">02:15 AM</option>
+<option value="02:30:00">02:30 AM</option>
+<option value="02:45:00">02:45 AM</option>
+<option value="03:00:00">03:00 AM</option>
+<option value="03:15:00">03:15 AM</option>
+<option value="03:30:00">03:30 AM</option>
+<option value="03:45:00">03:45 AM</option>
+<option value="04:00:00">04:00 AM</option>
+<option value="04:15:00">04:15 AM</option>
+<option value="04:30:00">04:30 AM</option>
+<option value="04:45:00">04:45 AM</option>
+<option value="05:00:00">05:00 AM</option>
+<option value="05:15:00">05:15 AM</option>
+<option value="05:30:00">05:30 AM</option>
+<option value="05:45:00">05:45 AM</option>
+<option value="06:00:00">06:00 AM</option>
+<option value="06:15:00">06:15 AM</option>
+<option value="06:30:00">06:30 AM</option>
+<option value="06:45:00">06:45 AM</option>
+<option value="07:00:00">07:00 AM</option>
+<option value="07:15:00">07:15 AM</option>
+<option value="07:30:00">07:30 AM</option>
+<option value="07:45:00">07:45 AM</option>
+<option value="08:00:00">08:00 AM</option>
+<option value="08:15:00">08:15 AM</option>
+<option value="08:30:00">08:30 AM</option>
+<option value="08:45:00">08:45 AM</option>
+<option value="09:00:00">09:00 AM</option>
+<option value="09:15:00">09:15 AM</option>
+<option value="09:30:00">09:30 AM</option>
+<option value="09:45:00">09:45 AM</option>
+<option value="10:00:00">10:00 AM</option>
+<option value="10:15:00">10:15 AM</option>
+<option value="10:30:00">10:30 AM</option>
+<option value="10:45:00">10:45 AM</option>
+<option value="11:00:00">11:00 AM</option>
+<option value="11:15:00">11:15 AM</option>
+<option value="11:30:00">11:30 AM</option>
+<option value="11:45:00">11:45 AM</option>
+<option value="12:00:00">12:00 PM</option>
+<option value="12:15:00">12:15 PM</option>
+<option value="12:30:00">12:30 PM</option>
+<option value="12:45:00">12:45 PM</option>
+<option value="13:00:00">01:00 PM</option>
+<option value="13:15:00">01:15 PM</option>
+<option value="13:30:00">01:30 PM</option>
+<option value="13:45:00">01:45 PM</option>
+<option value="14:00:00">02:00 PM</option>
+<option value="14:15:00">02:15 PM</option>
+<option value="14:30:00">02:30 PM</option>
+<option value="14:45:00">02:45 PM</option>
+<option value="15:00:00">03:00 PM</option>
+<option value="15:15:00">03:15 PM</option>
+<option value="15:30:00">03:30 PM</option>
+<option value="15:45:00">03:45 PM</option>
+<option value="16:00:00">04:00 PM</option>
+<option value="16:15:00">04:15 PM</option>
+<option value="16:30:00">04:30 PM</option>
+<option value="16:45:00">04:45 PM</option>
+<option value="17:00:00">05:00 PM</option>
+<option value="17:15:00">05:15 PM</option>
+<option value="17:30:00">05:30 PM</option>
+<option value="17:45:00">05:45 PM</option>
+<option value="18:00:00">06:00 PM</option>
+<option value="18:15:00">06:15 PM</option>
+<option value="18:30:00">06:30 PM</option>
+<option value="18:45:00">06:45 PM</option>
+<option value="19:00:00">07:00 PM</option>
+<option value="19:15:00">07:15 PM</option>
+<option value="19:30:00">07:30 PM</option>
+<option value="19:45:00">07:45 PM</option>
+<option value="20:00:00">08:00 PM</option>
+<option value="20:15:00">08:15 PM</option>
+<option value="20:30:00">08:30 PM</option>
+<option value="20:45:00">08:45 PM</option>
+<option value="21:00:00">09:00 PM</option>
+<option value="21:15:00">09:15 PM</option>
+<option value="21:30:00">09:30 PM</option>
+<option value="21:45:00">09:45 PM</option>
+<option value="22:00:00">10:00 PM</option>
+<option value="22:15:00">10:15 PM</option>
+<option value="22:30:00">10:30 PM</option>
+<option value="22:45:00">10:45 PM</option>
+<option value="23:00:00">11:00 PM</option>
+<option value="23:15:00">11:15 PM</option>
+<option value="23:30:00">11:30 PM</option>
+<option value="23:45:00">11:45 PM</option>
+
+                        </select>
                     </div>
                     <div class="field">
-                        <label>End Time</label>
-                        <input type="time" id="shiftEndTime" value="17:00">
+                        <label style="font-size:13px; font-weight:600; color:#333; margin-bottom:6px; display:block;">End Time</label>
+                        <select id="shiftEndTime" class="form-select" style="width:100%; padding:10px 12px; border:1px solid #dcdcdc; border-radius:8px; font-size:14px; color:#333; appearance:none; background:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')') no-repeat right 12px center; background-color:#fff;">
+                            <option value="00:00:00">12:00 AM</option>
+<option value="00:15:00">12:15 AM</option>
+<option value="00:30:00">12:30 AM</option>
+<option value="00:45:00">12:45 AM</option>
+<option value="01:00:00">01:00 AM</option>
+<option value="01:15:00">01:15 AM</option>
+<option value="01:30:00">01:30 AM</option>
+<option value="01:45:00">01:45 AM</option>
+<option value="02:00:00">02:00 AM</option>
+<option value="02:15:00">02:15 AM</option>
+<option value="02:30:00">02:30 AM</option>
+<option value="02:45:00">02:45 AM</option>
+<option value="03:00:00">03:00 AM</option>
+<option value="03:15:00">03:15 AM</option>
+<option value="03:30:00">03:30 AM</option>
+<option value="03:45:00">03:45 AM</option>
+<option value="04:00:00">04:00 AM</option>
+<option value="04:15:00">04:15 AM</option>
+<option value="04:30:00">04:30 AM</option>
+<option value="04:45:00">04:45 AM</option>
+<option value="05:00:00">05:00 AM</option>
+<option value="05:15:00">05:15 AM</option>
+<option value="05:30:00">05:30 AM</option>
+<option value="05:45:00">05:45 AM</option>
+<option value="06:00:00">06:00 AM</option>
+<option value="06:15:00">06:15 AM</option>
+<option value="06:30:00">06:30 AM</option>
+<option value="06:45:00">06:45 AM</option>
+<option value="07:00:00">07:00 AM</option>
+<option value="07:15:00">07:15 AM</option>
+<option value="07:30:00">07:30 AM</option>
+<option value="07:45:00">07:45 AM</option>
+<option value="08:00:00">08:00 AM</option>
+<option value="08:15:00">08:15 AM</option>
+<option value="08:30:00">08:30 AM</option>
+<option value="08:45:00">08:45 AM</option>
+<option value="09:00:00">09:00 AM</option>
+<option value="09:15:00">09:15 AM</option>
+<option value="09:30:00">09:30 AM</option>
+<option value="09:45:00">09:45 AM</option>
+<option value="10:00:00">10:00 AM</option>
+<option value="10:15:00">10:15 AM</option>
+<option value="10:30:00">10:30 AM</option>
+<option value="10:45:00">10:45 AM</option>
+<option value="11:00:00">11:00 AM</option>
+<option value="11:15:00">11:15 AM</option>
+<option value="11:30:00">11:30 AM</option>
+<option value="11:45:00">11:45 AM</option>
+<option value="12:00:00">12:00 PM</option>
+<option value="12:15:00">12:15 PM</option>
+<option value="12:30:00">12:30 PM</option>
+<option value="12:45:00">12:45 PM</option>
+<option value="13:00:00">01:00 PM</option>
+<option value="13:15:00">01:15 PM</option>
+<option value="13:30:00">01:30 PM</option>
+<option value="13:45:00">01:45 PM</option>
+<option value="14:00:00">02:00 PM</option>
+<option value="14:15:00">02:15 PM</option>
+<option value="14:30:00">02:30 PM</option>
+<option value="14:45:00">02:45 PM</option>
+<option value="15:00:00">03:00 PM</option>
+<option value="15:15:00">03:15 PM</option>
+<option value="15:30:00">03:30 PM</option>
+<option value="15:45:00">03:45 PM</option>
+<option value="16:00:00">04:00 PM</option>
+<option value="16:15:00">04:15 PM</option>
+<option value="16:30:00">04:30 PM</option>
+<option value="16:45:00">04:45 PM</option>
+<option value="17:00:00">05:00 PM</option>
+<option value="17:15:00">05:15 PM</option>
+<option value="17:30:00">05:30 PM</option>
+<option value="17:45:00">05:45 PM</option>
+<option value="18:00:00">06:00 PM</option>
+<option value="18:15:00">06:15 PM</option>
+<option value="18:30:00">06:30 PM</option>
+<option value="18:45:00">06:45 PM</option>
+<option value="19:00:00">07:00 PM</option>
+<option value="19:15:00">07:15 PM</option>
+<option value="19:30:00">07:30 PM</option>
+<option value="19:45:00">07:45 PM</option>
+<option value="20:00:00">08:00 PM</option>
+<option value="20:15:00">08:15 PM</option>
+<option value="20:30:00">08:30 PM</option>
+<option value="20:45:00">08:45 PM</option>
+<option value="21:00:00">09:00 PM</option>
+<option value="21:15:00">09:15 PM</option>
+<option value="21:30:00">09:30 PM</option>
+<option value="21:45:00">09:45 PM</option>
+<option value="22:00:00">10:00 PM</option>
+<option value="22:15:00">10:15 PM</option>
+<option value="22:30:00">10:30 PM</option>
+<option value="22:45:00">10:45 PM</option>
+<option value="23:00:00">11:00 PM</option>
+<option value="23:15:00">11:15 PM</option>
+<option value="23:30:00">11:30 PM</option>
+<option value="23:45:00">11:45 PM</option>
+
+                        </select>
                     </div>
                 </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:13px; font-weight:700; color:#333;">Effective Date Range (optional)</div>
+                    <div style="font-size:12px; color:#666; margin-bottom:12px;">Leave blank for an ongoing, recurring shift.</div>
+                    
+                    <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <div class="field">
+                            <label style="font-size:13px; font-weight:600; color:#333; margin-bottom:6px; display:block;">From</label>
+                            <input type="date" id="shiftStartDate" class="form-control" style="width:100%; padding:10px 12px; border:1px solid #dcdcdc; border-radius:8px; font-size:14px; color:#666; appearance:none; background:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSI0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxsaW5lIHgxPSIxNiIgeTE9IjIiIHgyPSIxNiIgeTI9IjYiPjwvbGluZT48bGluZSB4MT0iOCIgeTE9IjIiIHgyPSI4IiB5Mj0iNiI+PC9saW5lPjxsaW5lIHgxPSIzIiB5MT0iMTAiIHgyPSIyMSIgeTI9IjEwIj48L2xpbmU+PC9zdmc+')') no-repeat right 12px center; background-color:#fff; color:#333;">
+                        </div>
+                        <div class="field">
+                            <label style="font-size:13px; font-weight:600; color:#333; margin-bottom:6px; display:block;">To</label>
+                            <input type="date" id="shiftEndDate" class="form-control" style="width:100%; padding:10px 12px; border:1px solid #dcdcdc; border-radius:8px; font-size:14px; color:#666; appearance:none; background:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSI0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxsaW5lIHgxPSIxNiIgeTE9IjIiIHgyPSIxNiIgeTI9IjYiPjwvbGluZT48bGluZSB4MT0iOCIgeTE9IjIiIHgyPSI4IiB5Mj0iNiI+PC9saW5lPjxsaW5lIHgxPSIzIiB5MT0iMTAiIHgyPSIyMSIgeTI9IjEwIj48L2xpbmU+PC9zdmc+')') no-repeat right 12px center; background-color:#fff; color:#333;">
+                        </div>
+                    </div>
+                </div>
+
             </div>
-            <div class="modal-foot">
-                <button type="button" class="btn" onclick="closeModal('modalShift')">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="alert('Shift saved.')">Save</button>
+            <div class="modal-foot" style="margin-top:24px; padding-top:20px; border-top:1px solid #eaeaea; justify-content:flex-end; gap:12px;">
+                <button type="button" class="btn" onclick="closeModal('modalShift')" style="padding:10px 16px; font-weight:600; border:1px solid #dcdcdc; border-radius:8px; background:#fff; color:#333;">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveShift()" class="btn btn-primary">Save</button>
             </div>
         </div>
     </div>
