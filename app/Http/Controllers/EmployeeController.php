@@ -18,8 +18,9 @@ class EmployeeController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Employee::with(['site', 'department', 'shift', 'manager', 'leaves'])
-            ->orderBy('first_name');
+        $query = Employee::with(['site', 'department', 'shift', 'manager', 'leaves', 'attendanceRecords' => function ($q) {
+            $q->whereDate('attendance_date', today());
+        }])->orderBy('first_name');
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -281,5 +282,59 @@ class EmployeeController extends Controller
         $employee->delete();
 
         return back()->with('success', 'Employee deleted successfully.');
+    }
+
+    public function checkin(Request $request, Employee $employee)
+    {
+        $today = today();
+        
+        // Prevent double checkin
+        $existing = $employee->attendanceRecords()->whereDate('attendance_date', $today)->first();
+        if ($existing && !$existing->check_out_at) {
+            return response()->json(['success' => false, 'message' => 'Already checked in']);
+        }
+
+        // Determine if late
+        $status = 'present';
+        if ($employee->shift && $employee->shift->start_time) {
+            $shiftStart = \Carbon\Carbon::parse($employee->shift->start_time);
+            $grace = $employee->shift->grace_minutes ?? 0;
+            $allowedTime = $shiftStart->copy()->addMinutes($grace);
+            
+            // Note: Since shift start_time is a time only, we apply it to today
+            $shiftStartToday = \Carbon\Carbon::parse($today->format('Y-m-d') . ' ' . $shiftStart->format('H:i:s'));
+            $allowedTimeToday = $shiftStartToday->copy()->addMinutes($grace);
+
+            if (now()->greaterThan($allowedTimeToday)) {
+                $status = 'late';
+            }
+        }
+
+        $record = $employee->attendanceRecords()->create([
+            'organization_id' => $employee->organization_id,
+            'site_id' => $employee->site_id ?? \App\Models\Site::first()->id ?? 1,
+            'attendance_date' => $today,
+            'check_in_at' => now(),
+            'status' => $status,
+            'source' => 'web'
+        ]);
+
+        return response()->json(['success' => true, 'record' => $record]);
+    }
+
+    public function checkout(Request $request, Employee $employee)
+    {
+        $today = today();
+        $record = $employee->attendanceRecords()->whereDate('attendance_date', $today)->whereNull('check_out_at')->first();
+        
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'No active check-in found']);
+        }
+
+        $record->update([
+            'check_out_at' => now()
+        ]);
+
+        return response()->json(['success' => true, 'record' => $record]);
     }
 }

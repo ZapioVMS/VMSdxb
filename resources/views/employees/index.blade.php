@@ -488,23 +488,59 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($employees->take(8) as $emp)
+                                @foreach ($employees as $emp)
+                                    @php
+                                        $att = $emp->attendanceRecords->first();
+                                        $isOnLeave = $emp->status === 'on_leave';
+                                        
+                                        $checkInStr = '—';
+                                        $checkOutStr = '—';
+                                        $hoursStr = '—';
+                                        $statusStr = '<span class="chip chip-muted">Absent</span>';
+                                        
+                                        if ($isOnLeave) {
+                                            $statusStr = '<span class="chip chip-leave" style="background:#e8def8;color:#532397;">On Leave</span>';
+                                        } elseif ($att) {
+                                            $checkInStr = \Carbon\Carbon::parse($att->check_in_at)->format('h:i A');
+                                            
+                                            if ($att->check_out_at) {
+                                                $checkOutStr = \Carbon\Carbon::parse($att->check_out_at)->format('h:i A');
+                                                $diffMins = \Carbon\Carbon::parse($att->check_in_at)->diffInMinutes(\Carbon\Carbon::parse($att->check_out_at));
+                                                $hrs = floor($diffMins / 60);
+                                                $mins = $diffMins % 60;
+                                                $hoursStr = "{$hrs}h {$mins}m";
+                                                $statusStr = '<span class="chip" style="background:#f0f0f0;color:#666;">Complete</span>';
+                                            } else {
+                                                if ($att->status === 'late') {
+                                                    $statusStr = '<span class="chip chip-warning" style="background:#fff4e5;color:#b26a00;">Late Check-in</span>';
+                                                } else {
+                                                    $statusStr = '<span class="chip chip-good" style="background:#e6f4ea;color:#137333;">On Site</span>';
+                                                }
+                                            }
+                                        }
+                                    @endphp
                                     <tr>
                                         <td><div class="cell-name">{{ $emp->full_name }}</div></td>
                                         <td class="mono">{{ $emp->employee_code }}</td>
                                         <td>{{ $emp->department->name ?? '—' }}</td>
-                                        <td class="mono">08:15 AM</td>
-                                        <td class="mono">—</td>
-                                        <td class="mono">3h 45m</td>
-                                        <td>
-                                            @if ($emp->status === 'on_leave')
-                                                <span class="chip chip-leave">On Leave</span>
-                                            @else
-                                                <span class="chip chip-good">On Site</span>
-                                            @endif
-                                        </td>
+                                        <td class="mono">{{ $checkInStr }}</td>
+                                        <td class="mono">{{ $checkOutStr }}</td>
+                                        <td class="mono">{{ $hoursStr }}</td>
+                                        <td>{!! $statusStr !!}</td>
                                         <td style="text-align:end;">
-                                            <button type="button" class="btn btn-sm">Check out</button>
+                                            @if (!$isOnLeave)
+                                                @if (!$att)
+                                                    <button type="button" class="btn btn-primary btn-sm" onclick="doCheckIn({{ $emp->id }})" style="background:#1f4e5b; color:white;">
+                                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.1 0-2 .9-2 2v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                                                        <span>In</span>
+                                                    </button>
+                                                @elseif (!$att->check_out_at)
+                                                    <button type="button" class="btn btn-sm" onclick="doCheckOut({{ $emp->id }})" style="border:1px solid #dcdcdc;">
+                                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.1 0-2 .9-2 2v2"/><circle cx="8.5" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                                                        <span>Out</span>
+                                                    </button>
+                                                @endif
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -1627,6 +1663,46 @@
         function exportEmployeesCsv() {
             window.location.href = "{{ route('employees.index', array_merge(request()->query(), ['export' => 'csv'])) }}";
         }
+        function doCheckIn(empId) {
+            fetch(`/employees/${empId}/checkin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ _token: '{{ csrf_token() }}' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error checking in');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Server error.');
+            });
+        }
+
+        function doCheckOut(empId) {
+            fetch(`/employees/${empId}/checkout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ _token: '{{ csrf_token() }}' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error checking out');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Server error.');
+            });
+        }
+
         function deleteShift(id) {
             if (!confirm('Are you sure you want to delete this shift?')) return;
             

@@ -99,6 +99,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::post('/employees/{employee}/leave', [EmployeeController::class, 'toggleLeave'])->name('employees.leave');
     Route::get('/employees/{employee}/attendance', [EmployeeController::class, 'attendance'])->name('employees.attendance');
+    Route::post('/employees/{employee}/checkin', [EmployeeController::class, 'checkin'])->name('employees.checkin');
+    Route::post('/employees/{employee}/checkout', [EmployeeController::class, 'checkout'])->name('employees.checkout');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 
     // Lookup Settings Management (GET redirects to Settings Lookups)
