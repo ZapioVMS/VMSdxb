@@ -533,7 +533,7 @@
                         </div>
                         <div class="field">
                             <label for="inv_site_id">Branch / Location *</label>
-                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployees(); filterMeetingRoomsBySite(this.value);">
+                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value); filterMeetingRoomsBySite(this.value);">
                                 @foreach ($sites as $site)
                                     <option value="{{ $site->id }}">{{ $site->name }}</option>
                                 @endforeach
@@ -668,12 +668,20 @@
             options.forEach(opt => {
                 if (!opt.value) return; // Keep "Select Host Employee"
                 const empSite = opt.getAttribute('data-site');
-                if (!siteId || siteId === 'all' || empSite === siteId) {
+                if (!siteId || siteId === 'all' || empSite === siteId || !empSite) {
                     opt.style.display = '';
+                    opt.hidden = false;
+                    opt.disabled = false;
                 } else {
                     opt.style.display = 'none';
+                    opt.hidden = true;
+                    opt.disabled = true;
                 }
             });
+            // Reset value if currently selected option is now hidden
+            if (hostSelect.selectedOptions[0] && hostSelect.selectedOptions[0].hidden && hostSelect.selectedOptions[0].value) {
+                hostSelect.value = '';
+            }
         }
 
         const allMeetingRoomsData = @json($meetingRooms);
@@ -763,7 +771,7 @@
             document.getElementById('inv_meeting_room').value = data.meeting_room || '';
             document.getElementById('inv_expected_visitor_count').value = data.expected_visitor_count || 1;
 
-            filterHostEmployees();
+            filterHostEmployeesBySite(data.site_id);
             filterMeetingRoomsBySite(data.site_id);
             document.getElementById('inv_host_employee_id').value = data.host_employee_id || '';
 
