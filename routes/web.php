@@ -120,6 +120,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/lookups/shifts', [LookupController::class, 'storeShift'])->name('lookups.shifts.store');
     Route::put('/lookups/shifts/{shift}', [LookupController::class, 'updateShift'])->name('lookups.shifts.update');
+    Route::delete('/lookups/shifts/{shift}', [LookupController::class, 'destroyShift'])->name('lookups.shifts.destroy');
 
     Route::post('/lookups/floors', [LookupController::class, 'storeFloor'])->name('lookups.floors.store');
     Route::put('/lookups/floors/{floor}', [LookupController::class, 'updateFloor'])->name('lookups.floors.update');

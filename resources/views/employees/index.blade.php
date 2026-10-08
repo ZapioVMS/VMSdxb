@@ -621,7 +621,7 @@
                                 <button type="button" class="icon-btn btn-ghost" onclick="openShiftModal({{ json_encode($sh) }})">
                                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                 </button>
-                                <button type="button" class="icon-btn btn-ghost icon-btn-danger" onclick="alert('Delete shift')">
+                                <button type="button" class="icon-btn btn-ghost icon-btn-danger" onclick="deleteShift({{ $sh->id }})">
                                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                             </div>
@@ -968,6 +968,7 @@
             <div class="modal-body">
                 <div class="field" style="margin-bottom:20px;">
                     <label style="font-size:13px; font-weight:600; color:#333; margin-bottom:6px; display:block;">Shift Name</label>
+                    <input type="hidden" id="shiftId">
                     <input type="text" id="shiftName" class="form-control" placeholder="e.g. Night Shift" style="width:100%; padding:10px 12px; border:1px solid #dcdcdc; border-radius:8px; font-size:14px; color:#333;">
                 </div>
                 
@@ -1568,14 +1569,25 @@
             const title = document.getElementById('shiftModalTitle');
             if (sh) {
                 title.innerText = 'Edit Shift';
+                document.getElementById('shiftId').value = sh.id;
                 document.getElementById('shiftName').value = sh.name || '';
-                document.getElementById('shiftStartTime').value = sh.start_time || '08:00';
-                document.getElementById('shiftEndTime').value = sh.end_time || '17:00';
+                
+                // Format times for input
+                let start = sh.start_time ? sh.start_time.substring(0,5) + ':00' : '08:00:00';
+                let end = sh.end_time ? sh.end_time.substring(0,5) + ':00' : '17:00:00';
+                
+                document.getElementById('shiftStartTime').value = start;
+                document.getElementById('shiftEndTime').value = end;
+                document.getElementById('shiftStartDate').value = sh.effective_from ? sh.effective_from.split('T')[0] : '';
+                document.getElementById('shiftEndDate').value = sh.effective_to ? sh.effective_to.split('T')[0] : '';
             } else {
                 title.innerText = 'Add Shift';
+                document.getElementById('shiftId').value = '';
                 document.getElementById('shiftName').value = '';
-                document.getElementById('shiftStartTime').value = '08:00';
-                document.getElementById('shiftEndTime').value = '17:00';
+                document.getElementById('shiftStartTime').value = '08:00:00';
+                document.getElementById('shiftEndTime').value = '17:00:00';
+                document.getElementById('shiftStartDate').value = '';
+                document.getElementById('shiftEndDate').value = '';
             }
             openModal('modalShift');
         }
@@ -1615,6 +1627,34 @@
         function exportEmployeesCsv() {
             window.location.href = "{{ route('employees.index', array_merge(request()->query(), ['export' => 'csv'])) }}";
         }
+        function deleteShift(id) {
+            if (!confirm('Are you sure you want to delete this shift?')) return;
+            
+            fetch(`/lookups/shifts/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    _method: 'DELETE',
+                    _token: '{{ csrf_token() }}'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting shift.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Server error.');
+            });
+        }
+
         function saveShift() {
             const name = document.getElementById('shiftName').value;
             const startTime = document.getElementById('shiftStartTime').value;
@@ -1636,7 +1676,16 @@
                 _token: '{{ csrf_token() }}'
             };
 
-            fetch('{{ route("lookups.shifts.store") }}', {
+            const shiftId = document.getElementById('shiftId').value;
+            let url = '{{ route("lookups.shifts.store") }}';
+            let method = 'POST';
+            
+            if (shiftId) {
+                url = `/lookups/shifts/${shiftId}`;
+                payload._method = 'PUT'; // Laravel method spoofing
+            }
+
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

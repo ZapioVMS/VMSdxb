@@ -217,19 +217,42 @@ class LookupController extends Controller
         return redirect()->route('settings.index', ['tab' => 'shifts'])->with('success', 'Shift schedule created successfully.');
     }
 
-    public function updateShift(Request $request, Shift $shift): RedirectResponse
+    public function updateShift(Request $request, Shift $shift)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'start_time' => ['required', 'string'],
             'end_time' => ['required', 'string'],
+            'effective_from' => ['nullable', 'date'],
+            'effective_to' => ['nullable', 'date'],
             'grace_minutes' => ['nullable', 'integer', 'min:0'],
-            'status' => ['required', 'string', 'in:active,inactive'],
+            'status' => ['nullable', 'string', 'in:active,inactive'],
         ]);
+
+        if (!isset($validated['status'])) {
+            $validated['status'] = $shift->status ?? 'active';
+        }
+        if (!isset($validated['grace_minutes'])) {
+            $validated['grace_minutes'] = $shift->grace_minutes ?? 0;
+        }
 
         $shift->update($validated);
 
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'shift' => $shift]);
+        }
+
         return redirect()->route('settings.index', ['tab' => 'shifts'])->with('success', 'Shift schedule updated successfully.');
+    }
+
+    public function destroyShift(Request $request, Shift $shift)
+    {
+        $shift->delete();
+        
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->back()->with('success', 'Shift deleted.');
     }
 
     // --- FLOORS ---
