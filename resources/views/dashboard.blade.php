@@ -81,6 +81,37 @@
         .chip{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:99px; font-size:11.5px; font-weight:600; }
         .chip-good{ background:color-mix(in srgb, var(--good) 14%, transparent); color:var(--good); }
         .hstack{ display:flex; align-items:center; gap:10px; }
+            .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; opacity: 0; transition: opacity 0.2s ease; }
+        .mobile-only-btn { display: none !important; }
+        
+        @@media (max-width: 900px) {
+            #app { display: flex !important; flex-direction: column !important; min-height: 100vh; overflow-x: hidden; }
+            #sidebar { 
+                position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 999; 
+                width: 260px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                box-shadow: 4px 0 24px rgba(0,0,0,0.1); 
+            }
+            body.sidebar-open #sidebar { transform: translateX(0); }
+            body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
+            
+            #topbar { width: 100%; grid-column: auto !important; grid-row: auto !important; padding-inline: 12px !important; }
+            #main { padding: 16px 14px 60px !important; grid-column: auto !important; grid-row: auto !important; width: 100%; flex: 1; }
+            
+            .mobile-only-btn { display: inline-flex !important; }
+            
+            /* Responsive Utilities */
+            .grid-4, .grid-3, .form-grid { grid-template-columns: 1fr !important; }
+            .grid-2 { grid-template-columns: 1fr !important; }
+            .pagehead { flex-direction: column; align-items: flex-start !important; gap: 12px; height: auto !important; padding-bottom: 12px; }
+            .pagehead > div:last-child { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+            .pagehead button { width: 100%; justify-content: center; }
+            .filterbar { flex-direction: column; align-items: stretch !important; gap: 10px; }
+            .searchbox { max-width: 100% !important; }
+            
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+            .modal-panel { width: 92% !important; max-height: 90vh !important; margin: auto; }
+            .dtable th, .dtable td { padding: 10px 12px !important; }
+        }
     </style>
 </head>
 <body>
@@ -132,5 +163,10 @@
             </div>
         </main>
     </div>
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+    </script>
 </body>
 </html>
