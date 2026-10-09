@@ -117,6 +117,37 @@
         .banner-warn { background: rgba(250, 178, 25, 0.18); border: 1px solid rgba(250, 178, 25, 0.40); color: #7a5200; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 18px; display: none; }
 
         .avatar-placeholder { width: 120px; height: 120px; border-radius: 16px; background: var(--surface-2); border: 1.5px dashed var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px; font-weight: 700; color: var(--accent); }
+            .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; opacity: 0; transition: opacity 0.2s ease; }
+        .mobile-only-btn { display: none !important; }
+        
+        @@media (max-width: 900px) {
+            #app { display: flex !important; flex-direction: column !important; min-height: 100vh; overflow-x: hidden; }
+            #sidebar { 
+                position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 999; 
+                width: 260px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                box-shadow: 4px 0 24px rgba(0,0,0,0.1); 
+            }
+            body.sidebar-open #sidebar { transform: translateX(0); }
+            body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
+            
+            #topbar { width: 100%; grid-column: auto !important; grid-row: auto !important; padding-inline: 12px !important; }
+            #main { padding: 16px 14px 60px !important; grid-column: auto !important; grid-row: auto !important; width: 100%; flex: 1; }
+            
+            .mobile-only-btn { display: inline-flex !important; }
+            
+            /* Responsive Utilities */
+            .grid-4, .grid-3, .form-grid { grid-template-columns: 1fr !important; }
+            .grid-2 { grid-template-columns: 1fr !important; }
+            .pagehead { flex-direction: column; align-items: flex-start !important; gap: 12px; height: auto !important; padding-bottom: 12px; }
+            .pagehead > div:last-child { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+            .pagehead button { width: 100%; justify-content: center; }
+            .filterbar { flex-direction: column; align-items: stretch !important; gap: 10px; }
+            .searchbox { max-width: 100% !important; }
+            
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+            .modal-panel { width: 92% !important; max-height: 90vh !important; margin: auto; }
+            .dtable th, .dtable td { padding: 10px 12px !important; }
+        }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
@@ -135,6 +166,37 @@
         .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 40px;
             right: 8px;
+        }
+            .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; opacity: 0; transition: opacity 0.2s ease; }
+        .mobile-only-btn { display: none !important; }
+        
+        @@media (max-width: 900px) {
+            #app { display: flex !important; flex-direction: column !important; min-height: 100vh; overflow-x: hidden; }
+            #sidebar { 
+                position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 999; 
+                width: 260px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                box-shadow: 4px 0 24px rgba(0,0,0,0.1); 
+            }
+            body.sidebar-open #sidebar { transform: translateX(0); }
+            body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
+            
+            #topbar { width: 100%; grid-column: auto !important; grid-row: auto !important; padding-inline: 12px !important; }
+            #main { padding: 16px 14px 60px !important; grid-column: auto !important; grid-row: auto !important; width: 100%; flex: 1; }
+            
+            .mobile-only-btn { display: inline-flex !important; }
+            
+            /* Responsive Utilities */
+            .grid-4, .grid-3, .form-grid { grid-template-columns: 1fr !important; }
+            .grid-2 { grid-template-columns: 1fr !important; }
+            .pagehead { flex-direction: column; align-items: flex-start !important; gap: 12px; height: auto !important; padding-bottom: 12px; }
+            .pagehead > div:last-child { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+            .pagehead button { width: 100%; justify-content: center; }
+            .filterbar { flex-direction: column; align-items: stretch !important; gap: 10px; }
+            .searchbox { max-width: 100% !important; }
+            
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+            .modal-panel { width: 92% !important; max-height: 90vh !important; margin: auto; }
+            .dtable th, .dtable td { padding: 10px 12px !important; }
         }
     </style>
 </head>
@@ -321,7 +383,38 @@
                             .dtable thead th { border-bottom: 1px solid var(--border); background: var(--surface-2); font-size: 10.5px; padding: 12px 24px; }
                             .dtable tbody td { padding: 14px 24px; border-bottom: 1px solid var(--border); }
                             .dtable tbody tr:last-child td { border-bottom: none; }
-                        </style>
+                                .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; opacity: 0; transition: opacity 0.2s ease; }
+        .mobile-only-btn { display: none !important; }
+        
+        @@media (max-width: 900px) {
+            #app { display: flex !important; flex-direction: column !important; min-height: 100vh; overflow-x: hidden; }
+            #sidebar { 
+                position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 999; 
+                width: 260px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                box-shadow: 4px 0 24px rgba(0,0,0,0.1); 
+            }
+            body.sidebar-open #sidebar { transform: translateX(0); }
+            body.sidebar-open .sidebar-overlay { display: block; opacity: 1; }
+            
+            #topbar { width: 100%; grid-column: auto !important; grid-row: auto !important; padding-inline: 12px !important; }
+            #main { padding: 16px 14px 60px !important; grid-column: auto !important; grid-row: auto !important; width: 100%; flex: 1; }
+            
+            .mobile-only-btn { display: inline-flex !important; }
+            
+            /* Responsive Utilities */
+            .grid-4, .grid-3, .form-grid { grid-template-columns: 1fr !important; }
+            .grid-2 { grid-template-columns: 1fr !important; }
+            .pagehead { flex-direction: column; align-items: flex-start !important; gap: 12px; height: auto !important; padding-bottom: 12px; }
+            .pagehead > div:last-child { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+            .pagehead button { width: 100%; justify-content: center; }
+            .filterbar { flex-direction: column; align-items: stretch !important; gap: 10px; }
+            .searchbox { max-width: 100% !important; }
+            
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+            .modal-panel { width: 92% !important; max-height: 90vh !important; margin: auto; }
+            .dtable th, .dtable td { padding: 10px 12px !important; }
+        }
+    </style>
                         @include('partials.pre_registrations_table', ['invitations' => $expectedToday, 'showCheckInButton' => true])
                     </div>
                 @else
@@ -528,6 +621,11 @@
             });
             $('#phone_code').select2();
         });
+    </script>
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
     </script>
 </body>
 </html>

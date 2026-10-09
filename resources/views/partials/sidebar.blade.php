@@ -1,3 +1,4 @@
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 @php
     $current = $active ?? null;
     $isDashboard = $current === 'dashboard' || request()->routeIs('dashboard');
@@ -18,11 +19,14 @@
 @endphp
 
 <aside id="sidebar">
-    <!-- Brand Logo Section -->
-    <div class="brand" style="padding: 16px 18px; border-block-end: 1px solid var(--border); display: flex; align-items: center;">
+        <!-- Brand Logo Section -->
+    <div class="brand" style="padding: 16px 18px; border-block-end: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
         <a href="{{ route('dashboard') }}" style="display: block; text-decoration: none;">
             <img class="brand-logo" src="{{ asset('images/logo.png') }}" alt="Zapio VMS" style="height: 38px; width: auto; max-width: 100%; display: block;">
         </a>
+        <button type="button" class="mobile-only-btn" onclick="toggleSidebar()" style="border:none; background:none; padding:6px; cursor:pointer; color:var(--text-primary);">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
     </div>
 
     <!-- Navigation List grouped by Category Submenus -->

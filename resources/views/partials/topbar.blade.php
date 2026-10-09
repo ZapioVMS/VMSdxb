@@ -1,6 +1,10 @@
 <header id="topbar" style="grid-row:1; grid-column:2; background:var(--surface); border-block-end:1px solid var(--border); display:flex; align-items:center; gap:16px; padding-inline:20px; height:60px; min-width:0;">
     <!-- Left Section: Site Filter Dropdown + Global Search Bar -->
     <div style="display:flex; align-items:center; gap:12px; flex:1; max-width:650px;">
+        <!-- Hamburger Menu Button (Mobile Only) -->
+        <button type="button" class="mobile-only-btn" onclick="toggleSidebar()" style="border:none; background:none; padding:8px; cursor:pointer; color:var(--text-primary); margin-left:-10px;">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <!-- Site Dropdown -->
         <div style="position:relative; flex:none;">
             <select id="globalSiteSelect" onchange="handleGlobalSiteChange(this.value)" style="font-family:inherit; font-size:13px; font-weight:600; padding:7px 32px 7px 16px; border-radius:99px; border:1.5px solid var(--accent); background:var(--surface); color:var(--text-primary); cursor:pointer; outline:none; appearance:none; -webkit-appearance:none;">
