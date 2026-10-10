@@ -63,20 +63,19 @@ class UsersController extends Controller
         $orgId = TenantScope::getTenantId() ?? 1;
 
         $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'role_id' => ['required', 'exists:roles,id'],
-            // 'phone' is accepted in the form but currently not saved as the DB lacks a phone column
-            'phone' => ['nullable', 'string', 'max:50'],
+            'require_2fa' => ['nullable', 'string'],
         ]);
 
         $user = User::create([
             'organization_id' => $orgId,
-            'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
+            'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make(Str::random(16)), // Auto-generate secure password
             'status' => 'active', // Default to active
+            'two_factor_enabled' => $request->has('require_2fa') ? true : false,
         ]);
 
         // Attach single role
@@ -106,69 +105,36 @@ class UsersController extends Controller
         $user = User::where('organization_id', $orgId)->findOrFail($id);
 
         $validated = $request->validate([
-            'employee_id' => ['nullable', 'exists:employees,id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'password' => ['nullable', Password::defaults()],
-            'role_ids' => ['required', 'array'],
-            'role_ids.*' => ['exists:roles,id'],
-            'status' => ['required', 'in:active,inactive'],
-            'scopes' => ['nullable', 'array'],
+            'role_id' => ['required', 'exists:roles,id'],
+            'require_2fa' => ['nullable', 'string'],
         ]);
 
         $updateData = [
-            'employee_id' => $validated['employee_id'] ?? null,
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'status' => $validated['status'],
+            'two_factor_enabled' => $request->has('require_2fa') ? true : false,
         ];
-
-        if (!empty($validated['password'])) {
-            $updateData['password'] = Hash::make($validated['password']);
-        }
 
         $user->update($updateData);
 
-        // Update roles
+        // Update single role
         DB::table('user_roles')->where('user_id', $user->id)->delete();
-        foreach ($validated['role_ids'] as $roleId) {
-            DB::table('user_roles')->insert([
-                'organization_id' => $orgId,
-                'user_id' => $user->id,
-                'role_id' => $roleId,
-                'assigned_at' => now(),
-            ]);
-        }
+        DB::table('user_roles')->insert([
+            'organization_id' => $orgId,
+            'user_id' => $user->id,
+            'role_id' => $validated['role_id'],
+            'assigned_at' => now(),
+        ]);
         
-        // Update scopes
+        // Update scopes (Reset to default)
         DB::table('user_scopes')->where('user_id', $user->id)->delete();
-        if (!empty($validated['scopes'])) {
-            foreach ($validated['scopes'] as $type => $ids) {
-                if ($type === 'organization' || $type === 'platform') {
-                    DB::table('user_scopes')->insert([
-                        'organization_id' => $orgId,
-                        'user_id' => $user->id,
-                        'scope_type' => $type,
-                    ]);
-                } else if (is_array($ids)) {
-                    foreach ($ids as $scopeId) {
-                        DB::table('user_scopes')->insert([
-                            'organization_id' => $orgId,
-                            'user_id' => $user->id,
-                            'scope_type' => $type,
-                            'scope_id' => $scopeId,
-                        ]);
-                    }
-                }
-            }
-        } else {
-             // Default organization scope if nothing provided
-             DB::table('user_scopes')->insert([
-                'organization_id' => $orgId,
-                'user_id' => $user->id,
-                'scope_type' => 'organization',
-            ]);
-        }
+        DB::table('user_scopes')->insert([
+            'organization_id' => $orgId,
+            'user_id' => $user->id,
+            'scope_type' => 'organization',
+        ]);
 
         return redirect()->route('users.index', ['tab' => 'users'])->with('success', 'User updated successfully.');
     }
@@ -271,6 +237,8 @@ class UsersController extends Controller
         return redirect()->route('users.index', ['tab' => 'roles'])->with('success', 'Role updated successfully.');
     }
 }
+
+
 
 
 
