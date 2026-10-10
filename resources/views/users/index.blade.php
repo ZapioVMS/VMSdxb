@@ -143,7 +143,14 @@
             .modal-panel { width: 92% !important; max-height: 90vh !important; margin: auto; }
             .dtable th, .dtable td { padding: 10px 12px !important; }
         }
-    </style>
+            /* Toggle Switch CSS */
+        .switch { display: inline-flex; align-items: center; cursor: pointer; user-select: none; margin-left: auto; }
+        .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .track { width: 36px; height: 20px; background-color: var(--surface-3); border-radius: 20px; position: relative; transition: background-color 0.2s; display: inline-block; }
+        .thumb { width: 16px; height: 16px; background-color: #fff; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .switch input:checked + .track { background-color: var(--accent); }
+        .switch input:checked + .track .thumb { transform: translateX(16px); }
+</style>
 </head>
 <body>
     <div id="app">
@@ -159,7 +166,7 @@
                 <div class="pagehead-actions">
                     <button type="button" class="btn btn-primary" onclick="openUserModal()">
                         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        <span>+ Add User</span>
+                        <span>+ Invite User</span>
                     </button>
                     <button type="button" class="btn" onclick="openRoleModal()">
                         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
@@ -344,80 +351,43 @@
         <div class="modal-backdrop" onclick="closeModal('modalUser')"></div>
         <div class="modal-panel">
             <div class="modal-head">
-                <h3 id="userModalTitle">Add User</h3>
+                <h3 id="userModalTitle">Invite User</h3>
                 <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalUser')">✕</button>
             </div>
             <form id="userForm" method="POST" action="{{ route('users.store') }}">
                 @csrf
                 <input type="hidden" name="_method" id="userMethod" value="POST">
                 <div class="modal-body">
-                    <div class="field">
-                        <label>Link to Employee Profile (Optional)</label>
-                        <select name="employee_id" id="userEmployeeId">
-                            <option value="">No linked employee profile</option>
-                            @foreach($employees as $emp)
-                                <option value="{{ $emp->id }}">{{ $emp->full_name }} ({{ $emp->email }})</option>
-                            @endforeach
-                        </select>
-                        <div class="cell-sub">Linking connects the user account to their directory profile.</div>
-                    </div>
-                    
                     <div class="form-grid">
                         <div class="field">
                             <label>Full Name *</label>
                             <input type="text" name="name" id="userName" required>
                         </div>
                         <div class="field">
-                            <label>Email Address *</label>
+                            <label>Email *</label>
                             <input type="email" name="email" id="userEmail" required>
                         </div>
                     </div>
                     
-                    <div class="form-grid">
-                        <div class="field">
-                            <label>Password <span id="userPasswordReq">*</span></label>
-                            <input type="password" name="password" id="userPassword" placeholder="Minimum 8 characters">
-                            <div class="cell-sub" id="userPasswordHint" style="display:none;">Leave blank to keep current password.</div>
-                        </div>
-                        <div class="field">
-                            <label>Status</label>
-                            <select name="status" id="userStatus">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
+                    <div class="field" style="margin-top: 10px;">
+                        <label>Role *</label>
+                        <select name="role_id" id="userRole" required>
+                            <option value="">Select a role...</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->id }}">{{ $role->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
-                    <div class="field" style="margin-top: 10px;">
-                        <label>Assigned Roles *</label>
-                        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:6px;">
-                            @foreach($roles as $role)
-                                <label style="display:flex; align-items:center; gap:6px; font-weight:normal; color:var(--text-primary); cursor:pointer;">
-                                    <input type="checkbox" name="role_ids[]" value="{{ $role->id }}" class="user-role-cb">
-                                    {{ $role->name }}
-                                </label>
-                            @endforeach
+                    <div style="margin-top: 16px; display: flex; align-items: center; padding-top: 16px; border-top: 1px solid var(--border);">
+                        <div>
+                            <label style="margin-bottom: 2px; font-weight: 600;">Require 2FA</label>
+                            <div class="cell-sub" style="font-size: 11px;">User must set up two-factor authentication.</div>
                         </div>
-                    </div>
-                    
-                    <div class="field" style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 14px;">
-                        <label>Data Access Scope</label>
-                        <select id="userScopeType" onchange="toggleScopeInputs()">
-                            <option value="organization">Entire Organization</option>
-                            <option value="site">Specific Branches Only</option>
-                        </select>
-                        
-                        <div id="userScopeBranches" style="display:none; margin-top:10px;">
-                            <label style="font-size:12px; font-weight:600;">Select Branches:</label>
-                            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:6px;">
-                                @foreach($sites as $site)
-                                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; color:var(--text-primary); cursor:pointer;">
-                                        <input type="checkbox" name="scopes[site][]" value="{{ $site->id }}">
-                                        {{ $site->name }}
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="require_2fa" id="require_2fa" value="1">
+                            <span class="track"><span class="thumb"></span></span>
+                        </label>
                     </div>
 
                 </div>
@@ -430,63 +400,52 @@
     </div>
 
     <!-- EDIT ROLE MODAL -->
+        <!-- CREATE / EDIT ROLE MODAL -->
     <div id="modalRole" class="modal-root">
         <div class="modal-backdrop" onclick="closeModal('modalRole')"></div>
         <div class="modal-panel wide">
             <div class="modal-head">
-                <h3 id="roleModalTitle">Edit Role</h3>
+                <h3 id="roleModalTitle">Create Role</h3>
                 <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal('modalRole')">✕</button>
             </div>
-            <form id="roleForm" method="POST" action="">
+            <form id="roleForm" method="POST" action="{{ route('users.roles.store') }}">
                 @csrf
-                <input type="hidden" name="_method" value="PUT">
+                <input type="hidden" name="_method" id="roleMethod" value="POST">
                 <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="field">
-                            <label>Role Name *</label>
-                            <input type="text" name="name" id="roleName" required>
-                        </div>
-                        <div class="field">
-                            <label>Status</label>
-                            <select name="status" id="roleStatus">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
                     <div class="field">
-                        <label>Description</label>
-                        <textarea name="description" id="roleDescription" rows="2"></textarea>
-                    </div>
-
-                    <div style="margin-top: 20px; font-weight: 600; font-size:14px; border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:10px;">
-                        Permissions
+                        <label>Role Name</label>
+                        <input type="text" name="name" id="roleName" required>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        @php $currentMod = ''; @endphp
-                        @foreach($permissions as $perm)
-                            @if($currentMod !== $perm->module)
-                                @if($currentMod !== '') </div> @endif
-                                <div>
-                                    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">{{ $perm->module }}</div>
-                                @php $currentMod = $perm->module; @endphp
-                            @endif
-                            <div style="margin-bottom:10px;">
-                                <div style="font-size:13px; font-weight:600;">{{ $perm->name }}</div>
-                                <div style="display:flex; gap:10px; margin-top:4px;">
-                                    <label style="font-size:12px; cursor:pointer;"><input type="radio" name="permissions[{{ $perm->id }}]" value="none" id="perm_{{$perm->id}}_none" checked> None</label>
-                                    <label style="font-size:12px; cursor:pointer;"><input type="radio" name="permissions[{{ $perm->id }}]" value="view" id="perm_{{$perm->id}}_view"> View</label>
-                                    <label style="font-size:12px; cursor:pointer;"><input type="radio" name="permissions[{{ $perm->id }}]" value="full" id="perm_{{$perm->id}}_full"> Full</label>
-                                </div>
-                            </div>
-                        @endforeach
-                        @if($currentMod !== '') </div> @endif
+                    <div class="field" style="display:none;">
+                        <label>Status</label>
+                        <select name="status" id="roleStatus">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label>Description</label>
+                        <textarea name="description" id="roleDescription" rows="3"></textarea>
+                    </div>
+
+                    <div class="field" style="margin-top: 20px;">
+                        <label>Permission Highlights</label>
+                        <div class="cell-sub" style="margin-bottom:10px;">Shown as tags on the role card. Toggle whether each is granted or denied.</div>
+                        
+                        <div id="permissionTagsContainer">
+                            <!-- Dynamic permission rows will be added here -->
+                        </div>
+
+                        <button type="button" class="btn btn-sm" onclick="addPermissionTag()" style="margin-top: 10px;">
+                            + Add Tag
+                        </button>
                     </div>
                 </div>
                 <div class="modal-foot">
                     <button type="button" class="btn" onclick="closeModal('modalRole')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Role</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
@@ -499,39 +458,24 @@
         function openUserModal(user = null) {
             const form = document.getElementById('userForm');
             const method = document.getElementById('userMethod');
-            const pwdReq = document.getElementById('userPasswordReq');
-            const pwdHint = document.getElementById('userPasswordHint');
-            
-            document.querySelectorAll('.user-role-cb').forEach(cb => cb.checked = false);
             
             if (user) {
                 document.getElementById('userModalTitle').innerText = 'Edit User';
                 form.action = `/users/${user.id}`;
                 method.value = 'PUT';
-                document.getElementById('userName').value = user.name;
-                document.getElementById('userEmail').value = user.email;
-                document.getElementById('userEmployeeId').value = user.employee_id || '';
-                document.getElementById('userStatus').value = user.status;
-                document.getElementById('userPassword').required = false;
-                pwdReq.style.display = 'none';
-                pwdHint.style.display = 'block';
+                document.getElementById('userName').value = user.name || '';
+                document.getElementById('userEmail').value = user.email || '';
                 
-                if (user.roles) {
-                    user.roles.forEach(r => {
-                        const cb = document.querySelector(`.user-role-cb[value="${r.id}"]`);
-                        if(cb) cb.checked = true;
-                    });
+                if (user.roles && user.roles.length > 0) {
+                    document.getElementById('userRole').value = user.roles[0].id;
                 }
+                document.getElementById('require_2fa').checked = user.two_factor_enabled ? true : false;
                 
-                // TODO: set scopes on edit if we passed scopes in JSON
             } else {
-                document.getElementById('userModalTitle').innerText = 'Add User';
+                document.getElementById('userModalTitle').innerText = 'Invite User';
                 form.action = "{{ route('users.store') }}";
                 method.value = 'POST';
                 form.reset();
-                document.getElementById('userPassword').required = true;
-                pwdReq.style.display = 'inline';
-                pwdHint.style.display = 'none';
             }
             openModal('modalUser');
         }
@@ -544,31 +488,97 @@
         }
 
         const rolePermissions = @json($rolePermissions);
-        
-        function openRoleModal(role) {
-            const form = document.getElementById('roleForm');
-            document.getElementById('roleModalTitle').innerText = 'Edit Role: ' + role.name;
-            form.action = `/users/roles/${role.id}`;
-            document.getElementById('roleName').value = role.name;
-            document.getElementById('roleName').disabled = role.is_protected ? true : false;
-            document.getElementById('roleDescription').value = role.description || '';
-            document.getElementById('roleDescription').disabled = role.is_protected ? true : false;
-            document.getElementById('roleStatus').value = role.status;
-            document.getElementById('roleStatus').disabled = role.is_protected ? true : false;
-            
-            // reset radios
-            document.querySelectorAll('input[type="radio"][value="none"]').forEach(r => r.checked = true);
-            
-            // map existing perms
-            const myPerms = rolePermissions.filter(rp => rp.role_id === role.id);
-            myPerms.forEach(rp => {
-                const r = document.getElementById(`perm_${rp.permission_id}_${rp.access_level}`);
-                if (r) r.checked = true;
+        const allPermissions = @json($permissions);
+        let permRowCounter = 0;
+
+        function renderPermissionRow(permId = '', accessLevel = 'full') {
+            permRowCounter++;
+            let options = '<option value="">Select a permission...</option>';
+            allPermissions.forEach(p => {
+                const selected = p.id == permId ? 'selected' : '';
+                options += `<option value="${p.id}" ${selected}>${p.name}</option>`;
             });
+
+            const checked = accessLevel !== 'none' ? 'checked' : '';
+            const fieldName = permId ? `permissions[${permId}]` : `permissions_temp_${permRowCounter}`;
+            
+            return `
+                <div class="perm-row" id="permRow_${permRowCounter}" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <div style="flex:1; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px;">
+                        <select onchange="updatePermName(this, ${permRowCounter})" style="width:100%; border:none; outline:none; background:transparent; font-size:13px; padding:6px 0;">
+                            ${options}
+                        </select>
+                    </div>
+                    <label class="switch">
+                        <input type="hidden" name="${fieldName}" id="permHidden_${permRowCounter}" value="none">
+                        <input type="checkbox" name="${fieldName}" id="permCheck_${permRowCounter}" value="full" ${checked}>
+                        <span class="track"><span class="thumb"></span></span>
+                    </label>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="removePermRow(${permRowCounter})" style="padding: 4px; border: none; font-size:16px;">✕</button>
+                </div>
+            `;
+        }
+
+        function addPermissionTag() {
+            const container = document.getElementById('permissionTagsContainer');
+            container.insertAdjacentHTML('beforeend', renderPermissionRow());
+        }
+
+        function removePermRow(id) {
+            document.getElementById(`permRow_${id}`).remove();
+        }
+
+        function updatePermName(selectElem, id) {
+            const val = selectElem.value;
+            const hidden = document.getElementById(`permHidden_${id}`);
+            const check = document.getElementById(`permCheck_${id}`);
+            if (val) {
+                hidden.name = `permissions[${val}]`;
+                check.name = `permissions[${val}]`;
+            }
+        }
+        
+        function openRoleModal(role = null) {
+            const form = document.getElementById('roleForm');
+            const container = document.getElementById('permissionTagsContainer');
+            container.innerHTML = ''; // clear tags
+
+            if (role) {
+                document.getElementById('roleModalTitle').innerText = 'Edit Role: ' + role.name;
+                form.action = `/users/roles/${role.id}`;
+                document.getElementById('roleMethod').value = 'PUT';
+                
+                document.getElementById('roleName').value = role.name;
+                document.getElementById('roleName').disabled = role.is_protected ? true : false;
+                document.getElementById('roleDescription').value = role.description || '';
+                document.getElementById('roleDescription').disabled = role.is_protected ? true : false;
+                document.getElementById('roleStatus').value = role.status;
+                document.getElementById('roleStatus').disabled = role.is_protected ? true : false;
+                
+                // load existing perms
+                const myPerms = rolePermissions.filter(rp => rp.role_id === role.id);
+                myPerms.forEach(rp => {
+                    container.insertAdjacentHTML('beforeend', renderPermissionRow(rp.permission_id, rp.access_level));
+                });
+            } else {
+                document.getElementById('roleModalTitle').innerText = 'Create Role';
+                form.action = "{{ route('users.roles.store') }}";
+                document.getElementById('roleMethod').value = 'POST';
+                form.reset();
+                
+                document.getElementById('roleName').disabled = false;
+                document.getElementById('roleDescription').disabled = false;
+                document.getElementById('roleStatus').disabled = false;
+                document.getElementById('roleStatus').value = 'active';
+
+                // add one blank tag by default
+                addPermissionTag();
+            }
             
             openModal('modalRole');
         }
     </script>
+
     <script>
         function toggleSidebar() {
             document.body.classList.toggle('sidebar-open');
@@ -576,3 +586,7 @@
     </script>
 </body>
 </html>
+
+
+
+

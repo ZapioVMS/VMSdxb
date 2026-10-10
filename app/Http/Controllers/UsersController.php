@@ -11,6 +11,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use App\Models\Scopes\TenantScope;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Http\RedirectResponse;
 
@@ -62,65 +63,38 @@ class UsersController extends Controller
         $orgId = TenantScope::getTenantId() ?? 1;
 
         $validated = $request->validate([
-            'employee_id' => ['nullable', 'exists:employees,id'],
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', Password::defaults()],
-            'role_ids' => ['required', 'array'],
-            'role_ids.*' => ['exists:roles,id'],
-            'status' => ['required', 'in:active,inactive'],
-            'scopes' => ['nullable', 'array'], // e.g., ['site' => [1, 2], 'organization' => true]
+            'role_id' => ['required', 'exists:roles,id'],
+            // 'phone' is accepted in the form but currently not saved as the DB lacks a phone column
+            'phone' => ['nullable', 'string', 'max:50'],
         ]);
 
         $user = User::create([
             'organization_id' => $orgId,
-            'employee_id' => $validated['employee_id'] ?? null,
-            'name' => $validated['name'],
+            'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'status' => $validated['status'],
+            'password' => Hash::make(Str::random(16)), // Auto-generate secure password
+            'status' => 'active', // Default to active
         ]);
 
-        // Sync roles
-        foreach ($validated['role_ids'] as $roleId) {
-            DB::table('user_roles')->insert([
-                'organization_id' => $orgId,
-                'user_id' => $user->id,
-                'role_id' => $roleId,
-                'assigned_at' => now(),
-            ]);
-        }
+        // Attach single role
+        DB::table('user_roles')->insert([
+            'organization_id' => $orgId,
+            'user_id' => $user->id,
+            'role_id' => $validated['role_id'],
+            'assigned_at' => now(),
+        ]);
         
-        // Sync scopes
-        if (!empty($validated['scopes'])) {
-            foreach ($validated['scopes'] as $type => $ids) {
-                if ($type === 'organization' || $type === 'platform') {
-                    DB::table('user_scopes')->insert([
-                        'organization_id' => $orgId,
-                        'user_id' => $user->id,
-                        'scope_type' => $type,
-                    ]);
-                } else if (is_array($ids)) {
-                    foreach ($ids as $id) {
-                        DB::table('user_scopes')->insert([
-                            'organization_id' => $orgId,
-                            'user_id' => $user->id,
-                            'scope_type' => $type,
-                            'scope_id' => $id,
-                        ]);
-                    }
-                }
-            }
-        } else {
-             // Default organization scope if nothing provided
-             DB::table('user_scopes')->insert([
-                'organization_id' => $orgId,
-                'user_id' => $user->id,
-                'scope_type' => 'organization',
-            ]);
-        }
+        // Default organization scope
+        DB::table('user_scopes')->insert([
+            'organization_id' => $orgId,
+            'user_id' => $user->id,
+            'scope_type' => 'organization',
+        ]);
 
-        return redirect()->route('users.index', ['tab' => 'users'])->with('success', 'User created successfully.');
+        return redirect()->route('users.index', ['tab' => 'users'])->with('success', 'User invited successfully.');
     }
 
     /**
@@ -222,6 +196,42 @@ class UsersController extends Controller
     /**
      * Update a role (or create a custom role).
      */
+        /**
+     * Store a newly created role.
+     */
+    public function storeRole(Request $request): RedirectResponse
+    {
+        $orgId = TenantScope::getTenantId() ?? 1;
+        
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'permissions' => ['nullable', 'array']
+        ]);
+        
+        $role = Role::create([
+            'organization_id' => $orgId,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'status' => 'active',
+            'is_protected' => false,
+        ]);
+        
+        if (isset($validated['permissions'])) {
+            foreach ($validated['permissions'] as $permId => $accessLevel) {
+                $level = ($accessLevel === 'on' || $accessLevel == '1' || $accessLevel === 'full') ? 'full' : 'none';
+                DB::table('role_permissions')->insert([
+                    'organization_id' => $orgId,
+                    'role_id' => $role->id,
+                    'permission_id' => $permId,
+                    'access_level' => $level
+                ]);
+            }
+        }
+        
+        return redirect()->route('users.index', ['tab' => 'roles'])->with('success', 'Role created successfully.');
+    }
+
     public function updateRole(Request $request, string $id): RedirectResponse
     {
         $orgId = TenantScope::getTenantId() ?? 1;
@@ -261,3 +271,7 @@ class UsersController extends Controller
         return redirect()->route('users.index', ['tab' => 'roles'])->with('success', 'Role updated successfully.');
     }
 }
+
+
+
+

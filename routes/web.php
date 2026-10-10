@@ -132,9 +132,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/users', [\App\Http\Controllers\UsersController::class, 'store'])->name('users.store');
     Route::put('/users/{user}', [\App\Http\Controllers\UsersController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [\App\Http\Controllers\UsersController::class, 'destroy'])->name('users.destroy');
+    Route::post('/users/roles', [\App\Http\Controllers\UsersController::class, 'storeRole'])->name('users.roles.store');
     Route::put('/users/roles/{role}', [\App\Http\Controllers\UsersController::class, 'updateRole'])->name('users.roles.update');
     
     // Approvals Management
     Route::get('/approvals', [\App\Http\Controllers\ApprovalsController::class, 'index'])->name('approvals.index');
     Route::post('/approvals/{approval}/action', [\App\Http\Controllers\ApprovalsController::class, 'action'])->name('approvals.action');
 });
+
