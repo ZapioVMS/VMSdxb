@@ -158,20 +158,27 @@
         @include('partials.topbar')
 
         <main id="main">
-            <div class="pagehead">
+                        <div class="pagehead" style="align-items: center; justify-content: space-between; display: flex; margin-bottom: 24px;">
                 <div>
-                    <h1>Users & Roles</h1>
-                    <div class="sub">Manage system access, create roles, and define permission levels across the platform.</div>
+                    <h1>Users & Permissions</h1>
+                    <div class="sub">Manage who can access Zapio VMS and what they can do.</div>
                 </div>
-                <div class="pagehead-actions">
-                    <button type="button" class="btn btn-primary" onclick="openUserModal()">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        <span>+ Invite User</span>
-                    </button>
-                    <button type="button" class="btn" onclick="openRoleModal()">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        <span>+ Add Role</span>
-                    </button>
+                <div class="pagehead-actions" style="display: flex; gap: 12px;">
+                    @if ($activeTab === 'users')
+                        <button type="button" class="btn">
+                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            <span>Export</span>
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="openUserModal()">
+                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 7a4 4 0 1 1 8 0 4 4 0 0 1-8 0M20 8v6M23 11h-6"/></svg>
+                            <span>Invite User</span>
+                        </button>
+                    @elseif ($activeTab === 'roles')
+                        <button type="button" class="btn btn-primary" onclick="openRoleModal()">
+                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                            <span>Create Role</span>
+                        </button>
+                    @endif
                 </div>
             </div>
 
@@ -190,60 +197,102 @@
                 </div>
             @endif
 
-            <div class="subtabs">
-                <a href="{{ route('users.index', ['tab' => 'users']) }}" class="subtab {{ $activeTab === 'users' ? 'active' : '' }}">Users ({{ $users->count() }})</a>
-                <a href="{{ route('users.index', ['tab' => 'roles']) }}" class="subtab {{ $activeTab === 'roles' ? 'active' : '' }}">Roles ({{ $roles->count() }})</a>
-                <a href="{{ route('users.index', ['tab' => 'matrix']) }}" class="subtab {{ $activeTab === 'matrix' ? 'active' : '' }}">Permissions Matrix</a>
+                        <div class="subtabs">
+                <a href="{{ route('users.index', ['tab' => 'users']) }}" class="subtab {{ $activeTab === 'users' ? 'active' : '' }}">Users</a>
+                <a href="{{ route('users.index', ['tab' => 'roles']) }}" class="subtab {{ $activeTab === 'roles' ? 'active' : '' }}">Roles</a>
+                <a href="{{ route('users.index', ['tab' => 'matrix']) }}" class="subtab {{ $activeTab === 'matrix' ? 'active' : '' }}">Permission Matrix</a>
                 <a href="{{ route('users.index', ['tab' => 'activity']) }}" class="subtab {{ $activeTab === 'activity' ? 'active' : '' }}">Activity Log</a>
             </div>
 
             <!-- TAB 1: USERS -->
             @if ($activeTab === 'users')
-            <div class="tablewrap scrollx">
-                <table class="dtable">
+            
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; margin-top: 24px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <h3 style="margin:0; font-size:16px; font-weight:700;">All Users</h3>
+                    <span class="chip" style="background:#e6f4ea; color:#1e8e3e; font-weight:600; padding: 4px 10px; border-radius: 20px;">{{ $users->count() }} users</span>
+                </div>
+                <div class="searchbox" style="width:280px; max-width:100%; position: relative;">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 10px; top: 10px; width: 16px; height: 16px; color: #9aa0a6;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" placeholder="Search users..." style="width: 100%; padding: 8px 10px 8px 34px; border: 1px solid var(--border); border-radius: 20px; font-size: 13.5px; background: #f8f9fa;">
+                </div>
+            </div>
+
+            <div class="tablewrap scrollx" style="border: none; border-top: 1px solid var(--border); border-radius: 0;">
+                <table class="dtable" style="font-size: 13.5px; width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th>User Name</th>
-                            <th>Role(s)</th>
-                            <th>Scope / Domain</th>
-                            <th>Status</th>
-                            <th>Last Login</th>
-                            <th style="text-align:end;">Actions</th>
+                        <tr style="background:#f8f9fa;">
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">USER</th>
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">ROLE</th>
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">STATUS</th>
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">LAST LOGIN</th>
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">2FA</th>
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">ADDED</th>
+                            <th style="font-weight:600; color:var(--text-muted); font-size:11px; letter-spacing:0.05em; padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--border);">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($users as $user)
                         <tr>
-                            <td>
-                                <div class="cell-name">{{ $user->name }}</div>
-                                <div class="cell-sub">{{ $user->email }}</div>
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
+                                <div style="font-weight:600; color:var(--text-primary);">{{ $user->name }}</div>
+                                <div style="color:var(--text-muted); font-size:12.5px; margin-top: 2px;">{{ $user->email }}</div>
                             </td>
-                            <td>
-                                @foreach($user->roles as $role)
-                                    <span class="chip chip-muted">{{ $role->name }}</span>
-                                @endforeach
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
+                                @php
+                                    $roleName = $user->roles->first()->name ?? 'None';
+                                    $roleColor = 'background:#f1f3f4; color:#5f6368;'; // default grey
+                                    if(stripos($roleName, 'Super Admin') !== false) { $roleColor = 'background:#f0e6ff; color:#6b38fb;'; }
+                                    elseif(stripos($roleName, 'Admin') !== false) { $roleColor = 'background:#e6f4ea; color:#1e8e3e;'; }
+                                    elseif(stripos($roleName, 'Manager') !== false) { $roleColor = 'background:#e8f0fe; color:#1a73e8;'; }
+                                    elseif(stripos($roleName, 'Security') !== false) { $roleColor = 'background:#fce8e6; color:#d93025;'; }
+                                @endphp
+                                <span style="{{ $roleColor }} font-weight:600; padding: 4px 10px; border-radius: 6px; font-size: 12px; display: inline-block;">{{ $roleName }}</span>
                             </td>
-                            <td>Organization Wide</td>
-                            <td>
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
                                 @if($user->status === 'active')
-                                    <span class="chip chip-good">Active</span>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <div style="width:6px; height:6px; border-radius:50%; background:#1e8e3e;"></div>
+                                        <span style="color:var(--text-primary); font-weight: 500;">Online</span>
+                                    </div>
                                 @else
-                                    <span class="chip chip-warning">Inactive</span>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <div style="width:6px; height:6px; border-radius:50%; background:#9aa0a6;"></div>
+                                        <span style="color:var(--text-muted); font-weight: 500;">Offline</span>
+                                    </div>
                                 @endif
                             </td>
-                            <td class="cell-sub">{{ $user->last_login_at ? \Carbon\Carbon::parse($user->last_login_at)->diffForHumans() : 'Never' }}</td>
-                            <td style="text-align:end;">
-                                <div class="rowactions">
-                                    <button class="icon-btn" title="Edit" onclick="openUserModal({{ json_encode($user) }})">
-                                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border); color:var(--text-secondary);">
+                                {{ $user->last_login_at ? \Carbon\Carbon::parse($user->last_login_at)->format('j M Y, h:i A') : 'Never' }}
+                            </td>
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
+                                @if($user->two_factor_enabled)
+                                    <span style="color:#1e8e3e; font-weight:600;">Enabled</span>
+                                @else
+                                    <span style="color:var(--text-muted); font-weight: 500;">Disabled</span>
+                                @endif
+                            </td>
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border); color:var(--text-secondary);">
+                                {{ $user->created_at ? $user->created_at->format('j M Y') : '' }}
+                            </td>
+                            <td style="padding: 14px 16px; border-bottom: 1px solid var(--border); text-align: right;">
+                                <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+                                    <button class="icon-btn" onclick="openUserModal({{ json_encode($user) }})" title="Edit User" style="color: #5f6368; background: transparent; border: none; cursor: pointer; padding: 4px;">
+                                        <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                     </button>
-                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this user?')">
+                                    
+                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this user?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="icon-btn icon-btn-danger" title="Delete">
-                                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                        <button type="submit" class="icon-btn" title="Delete User" style="color: #5f6368; background: transparent; border: none; cursor: pointer; padding: 4px;">
+                                            @if(stripos($roleName, 'Super Admin') !== false)
+                                                <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                                            @else
+                                                <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                            @endif
                                         </button>
                                     </form>
+                                    
                                 </div>
                             </td>
                         </tr>
@@ -253,7 +302,7 @@
             </div>
             @endif
 
-            <!-- TAB 2: ROLES -->
+            <!-- TAB 2: ROLES --><!-- TAB 2: ROLES -->
             @if ($activeTab === 'roles')
             <div class="grid grid-3">
                 @foreach($roles as $role)
