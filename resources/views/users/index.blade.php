@@ -173,11 +173,6 @@
                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 7a4 4 0 1 1 8 0 4 4 0 0 1-8 0M20 8v6M23 11h-6"/></svg>
                             <span>Invite User</span>
                         </button>
-                    @elseif ($activeTab === 'roles')
-                        <button type="button" class="btn btn-primary" onclick="openRoleModal()">
-                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                            <span>Create Role</span>
-                        </button>
                     @endif
                 </div>
             </div>
@@ -302,27 +297,65 @@
             </div>
             @endif
 
-            <!-- TAB 2: ROLES --><!-- TAB 2: ROLES -->
+            <!-- TAB 2: ROLES -->
             @if ($activeTab === 'roles')
-            <div class="grid grid-3">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px; margin-top: 24px;">
+                <h3 style="margin:0; font-size:16px; font-weight:700;">Roles</h3>
+                <button type="button" class="btn btn-primary" onclick="openRoleModal()" style="background:#0a6b5c; border:none; display:flex; align-items:center; gap:6px; padding: 8px 16px; font-weight:600; border-radius: 6px;">
+                    <svg style="width:16px; height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Create Role
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 @foreach($roles as $role)
-                <div class="card" style="margin-bottom: 0;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                        <div>
-                            <div class="section-title">{{ $role->name }}</div>
-                            @if($role->is_protected)
-                                <span class="chip chip-muted" style="font-size:10px; margin-top:4px;">Built-in</span>
-                            @endif
-                        </div>
-                        <button class="icon-btn" onclick="openRoleModal({{ json_encode($role) }})">
-                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
+                <div class="card" style="margin-bottom: 0; display:flex; flex-direction:column; padding: 24px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);">{{ $role->name }}</h4>
+                        <span style="font-size:11px; color:var(--text-muted);">{{ $role->users()->count() }} user{{ $role->users()->count() !== 1 ? 's' : '' }}</span>
                     </div>
-                    <div class="cell-sub" style="margin-bottom:14px; min-height: 36px;">
+                    
+                    <div style="font-size:12.5px; color:var(--text-secondary); margin-bottom:20px; min-height: 40px; line-height: 1.5;">
                         {{ $role->description ?? 'No description provided.' }}
                     </div>
-                    <div style="font-size:12px; font-weight:600; color:var(--text-secondary);">
-                        {{ $role->users()->count() }} User(s)
+                    
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:30px; flex:1;">
+                        @php
+                            $myPerms = $rolePermissions->where('role_id', $role->id);
+                        @endphp
+                        @foreach($myPerms as $rp)
+                            @php
+                                $perm = $permissions->firstWhere('id', $rp->permission_id);
+                                $pName = $perm ? $perm->name : 'Unknown';
+                            @endphp
+                            @if($rp->access_level === 'full')
+                                <span style="background-color: #e6f4ea; color: #1e8e3e; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">{{ $pName }}</span>
+                            @elseif($rp->access_level === 'none')
+                                <span style="background-color: #fce8e6; color: #d93025; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; text-decoration: line-through;">{{ $pName }}</span>
+                            @endif
+                        @endforeach
+                    </div>
+                    
+                    <div style="display:flex; gap:12px;">
+                        @if(stripos($role->name, 'Super Admin') !== false)
+                            <button class="btn btn-sm" style="border:1px solid var(--border); background:white; color:var(--text-primary); display:flex; gap:6px; align-items:center; border-radius: 6px; font-weight: 600; padding: 6px 14px;">
+                                <svg style="width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                View
+                            </button>
+                        @else
+                            <button class="btn btn-sm" onclick="openRoleModal({{ json_encode($role) }})" style="border:1px solid var(--border); background:white; color:var(--text-primary); display:flex; gap:6px; align-items:center; border-radius: 6px; font-weight: 600; padding: 6px 14px;">
+                                <svg style="width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                Edit
+                            </button>
+                            <button class="btn btn-sm" style="border:1px solid var(--border); background:white; color:var(--text-primary); display:flex; gap:6px; align-items:center; border-radius: 6px; font-weight: 600; padding: 6px 14px;">
+                                <svg style="width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Clone
+                            </button>
+                            <button class="btn btn-sm" onclick="return confirm('Delete this role?');" style="border:1px solid #fce8e6; background:white; color:#d93025; display:flex; gap:6px; align-items:center; border-radius: 6px; font-weight: 600; padding: 6px 14px;">
+                                <svg style="width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete
+                            </button>
+                        @endif
                     </div>
                 </div>
                 @endforeach
@@ -635,6 +668,7 @@
     </script>
 </body>
 </html>
+
 
 
 
