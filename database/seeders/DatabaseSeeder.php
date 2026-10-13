@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             DemoOrganizationSeeder::class,
             DeliveryAndMeetingRoomSeeder::class,
             FloorAndAreaSeeder::class,
+            GatePassSeeder::class,
         ]);
     }
 }

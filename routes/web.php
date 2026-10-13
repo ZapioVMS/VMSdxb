@@ -5,6 +5,7 @@ use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\GatePassController;
 use App\Http\Controllers\LookupController;
 use App\Http\Controllers\PreRegistrationController;
 use App\Http\Controllers\SettingsController;
@@ -37,6 +38,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/visitors/check-in', [CheckInController::class, 'store'])->name('visitors.checkin.store');
     Route::post('/visits/{visit}/checkout', [CheckInController::class, 'checkout'])->name('visits.checkout');
     Route::post('/visits/{visit}/watchlist', [VisitorLogController::class, 'addToWatchlist'])->name('visits.watchlist');
+
+    // Gate Pass Routes
+    Route::get('/gate-passes', [GatePassController::class, 'index'])->name('gate_passes.index');
+    Route::post('/gate-passes', [GatePassController::class, 'store'])->name('gate_passes.store');
+    Route::post('/gate-passes/{gatePass}/redeem', [GatePassController::class, 'redeem'])->name('gate_passes.redeem');
+    Route::post('/gate-passes/{gatePass}/cancel', [GatePassController::class, 'cancel'])->name('gate_passes.cancel');
 
     // Pre-Registration Routes
     Route::get('/pre-registrations', [PreRegistrationController::class, 'index'])->name('pre_registrations.index');

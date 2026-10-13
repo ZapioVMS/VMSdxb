@@ -4,6 +4,7 @@
     $isDashboard = $current === 'dashboard' || request()->routeIs('dashboard');
     $isVisitorLog = $current === 'visitors' || (request()->routeIs('visitors.index') && !request()->routeIs('visitors.checkin'));
     $isCheckin = $current === 'checkin' || request()->routeIs('visitors.checkin');
+    $isGatePass = $current === 'gate_passes' || request()->routeIs('gate_passes.*');
     $isPreReg = $current === 'pre_registrations' || request()->routeIs('pre_registrations.*');
     $isDeliveries = $current === 'deliveries' || request()->routeIs('deliveries.*');
     $isApprovals = $current === 'approvals' || request()->routeIs('approvals.*');
@@ -44,6 +45,10 @@
         <a href="{{ route('visitors.checkin') }}" class="navitem {{ $isCheckin ? 'active' : '' }}">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.2"/><path d="M3 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3"/><path d="M19 8v5M16.5 10.5h5"/></svg>
             <span>Check-In</span>
+        </a>
+        <a href="{{ route('gate_passes.index') }}" class="navitem {{ $isGatePass ? 'active' : '' }}">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+            <span>Gate Pass</span>
         </a>
         <a href="{{ route('pre_registrations.index') }}" class="navitem {{ $isPreReg ? 'active' : '' }}">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
