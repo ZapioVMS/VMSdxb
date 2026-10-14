@@ -82,6 +82,18 @@
         .searchbox { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 7px 14px; color: var(--text-muted); }
         .searchbox input { border: none; background: none; outline: none; color: var(--text-primary); font-size: 13px; width: 100%; font-family: inherit; }
         .select-filter { font-family: inherit; font-size: 13px; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); font-weight: 500; cursor: pointer; }
+
+        /* Search suggestions */
+        .searchbox { position: relative; }
+        .suggest-list { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); max-height: 280px; overflow-y: auto; display: none; padding: 4px; }
+        .suggest-list.open { display: block; }
+        .suggest-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-primary); }
+        .suggest-item:hover, .suggest-item.active { background: var(--accent-soft); }
+        .suggest-item .s-name { font-weight: 600; }
+        .suggest-item .s-sub { font-size: 11.5px; color: var(--text-muted); }
+        .suggest-item .s-code { font-size: 11.5px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+        .suggest-item mark { background: color-mix(in srgb, var(--warning) 35%, transparent); color: inherit; border-radius: 2px; }
+        .suggest-empty { padding: 10px; font-size: 12.5px; color: var(--text-muted); }
         
         .pillrow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
         .statuspill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--pill-color, var(--text-secondary)); font-family: inherit; text-decoration: none; }
@@ -292,7 +304,8 @@
                     <div class="filterbar" style="align-items:center;">
                         <div class="searchbox grow" style="max-width:320px;">
                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" name="search" placeholder="Search employees..." value="{{ request('search') }}" onchange="this.form.submit()">
+                            <input type="text" name="search" id="empSearchInput" placeholder="Search by name or employee ID..." value="{{ request('search') }}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="empSuggestList" aria-expanded="false">
+                            <div class="suggest-list" id="empSuggestList" role="listbox"></div>
                         </div>
 
                         <select name="site_id" onchange="this.form.submit()" class="select-filter">
@@ -343,6 +356,92 @@
                         </button>
                     </div>
                 </form>
+
+                <script>
+                    (function () {
+                        const employees = @json($allEmployees->map(fn ($e) => ['name' => $e->full_name, 'code' => $e->employee_code, 'email' => $e->email])->values());
+                        const input = document.getElementById('empSearchInput');
+                        const list = document.getElementById('empSuggestList');
+                        const form = document.getElementById('directoryFilterForm');
+                        let activeIndex = -1;
+                        let current = [];
+
+                        const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                        const highlight = (text, q) => {
+                            const safe = escapeHtml(text);
+                            if (!q) return safe;
+                            const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+                            return safe.replace(re, '<mark>$1</mark>');
+                        };
+
+                        function close() {
+                            list.classList.remove('open');
+                            input.setAttribute('aria-expanded', 'false');
+                            activeIndex = -1;
+                        }
+
+                        function render(q) {
+                            const term = q.trim().toLowerCase();
+                            if (!term) { close(); return; }
+
+                            current = employees.filter(e =>
+                                (e.name || '').toLowerCase().includes(term) ||
+                                (e.code || '').toLowerCase().includes(term)
+                            ).slice(0, 8);
+
+                            list.innerHTML = current.length
+                                ? current.map((e, i) => `
+                                    <div class="suggest-item" role="option" data-index="${i}">
+                                        <div>
+                                            <div class="s-name">${highlight(e.name, q.trim())}</div>
+                                            <div class="s-sub">${escapeHtml(e.email || '')}</div>
+                                        </div>
+                                        <span class="s-code">${highlight(e.code, q.trim())}</span>
+                                    </div>`).join('')
+                                : '<div class="suggest-empty">No employees match “' + escapeHtml(q.trim()) + '”</div>';
+
+                            activeIndex = -1;
+                            list.classList.add('open');
+                            input.setAttribute('aria-expanded', 'true');
+                        }
+
+                        function choose(i) {
+                            const e = current[i];
+                            if (!e) return;
+                            input.value = e.code || e.name;
+                            close();
+                            form.submit();
+                        }
+
+                        function setActive(i) {
+                            const items = list.querySelectorAll('.suggest-item');
+                            if (!items.length) return;
+                            activeIndex = (i + items.length) % items.length;
+                            items.forEach((el, idx) => el.classList.toggle('active', idx === activeIndex));
+                            items[activeIndex].scrollIntoView({ block: 'nearest' });
+                        }
+
+                        input.addEventListener('input', () => render(input.value));
+                        input.addEventListener('focus', () => { if (input.value.trim()) render(input.value); });
+                        input.addEventListener('keydown', ev => {
+                            const open = list.classList.contains('open');
+                            if (ev.key === 'ArrowDown' && open) { ev.preventDefault(); setActive(activeIndex + 1); }
+                            else if (ev.key === 'ArrowUp' && open) { ev.preventDefault(); setActive(activeIndex - 1); }
+                            else if (ev.key === 'Enter') {
+                                if (open && activeIndex >= 0) { ev.preventDefault(); choose(activeIndex); }
+                                // otherwise the form submits with the typed text
+                            }
+                            else if (ev.key === 'Escape') { close(); }
+                        });
+                        list.addEventListener('mousedown', ev => {
+                            const item = ev.target.closest('.suggest-item');
+                            if (item) { ev.preventDefault(); choose(+item.dataset.index); }
+                        });
+                        document.addEventListener('click', ev => {
+                            if (!ev.target.closest('#empSuggestList') && ev.target !== input) close();
+                        });
+                    })();
+                </script>
 
                 <!-- Bulk Selection Bar -->
                 <div id="bulkActionBar" class="bulkbar" style="display:none;">
@@ -429,10 +528,10 @@
                     <div class="hstack" style="gap:16px;">
                         <div class="pagesize">
                             <span>Rows per page</span>
-                            <select class="select-filter" style="padding:4px 8px;font-size:12px;" onchange="location.href='?per_page='+this.value">
-                                <option value="25" selected>25</option>
-                                <option value="50">50</option>
-                                <option value="100">100</option>
+                            <select class="select-filter" style="padding:4px 8px;font-size:12px;" onchange="const u = new URL(window.location.href); u.searchParams.set('per_page', this.value); u.searchParams.delete('page'); location.href = u.toString();">
+                                @foreach ([25, 50, 100] as $size)
+                                    <option value="{{ $size }}" {{ $employees->perPage() == $size ? 'selected' : '' }}>{{ $size }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="pager">
@@ -540,7 +639,9 @@
                                                 $hrs = floor($diffMins / 60);
                                                 $mins = $diffMins % 60;
                                                 $hoursStr = "{$hrs}h {$mins}m";
-                                                $statusStr = '<span class="chip" style="background:#f0f0f0;color:#666;">Complete</span>';
+                                                $statusStr = ($emp->today_status ?? null) === 'early'
+                                                    ? '<span class="chip chip-serious">Early Checkout</span>'
+                                                    : '<span class="chip" style="background:#f0f0f0;color:#666;">Complete</span>';
                                             } else {
                                                 if ($att->status === 'late') {
                                                     $statusStr = '<span class="chip chip-warning" style="background:#fff4e5;color:#b26a00;">Late Check-in</span>';

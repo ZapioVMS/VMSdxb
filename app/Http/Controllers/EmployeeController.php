@@ -7,7 +7,9 @@ use App\Models\Employee;
 use App\Models\Scopes\TenantScope;
 use App\Models\Site;
 use App\Models\Shift;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,11 +20,14 @@ class EmployeeController extends Controller
      */
     public function index(Request $request): View
     {
+        // Treat empty values and the top-bar "all" value as "no filter".
+        $hasFilter = fn (string $key) => $request->filled($key) && $request->input($key) !== 'all';
+
         $query = Employee::with(['site', 'department', 'shift', 'manager', 'leaves', 'attendanceRecords' => function ($q) {
             $q->whereDate('attendance_date', today());
         }])->orderBy('first_name');
 
-        if ($request->filled('search')) {
+        if ($hasFilter('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'ILIKE', "%{$search}%")
@@ -32,40 +37,56 @@ class EmployeeController extends Controller
             });
         }
 
-        if ($request->filled('site_id')) {
+        if ($hasFilter('site_id')) {
             $query->where('site_id', $request->input('site_id'));
         }
 
-        if ($request->filled('department_id')) {
+        if ($hasFilter('department_id')) {
             $query->where('department_id', $request->input('department_id'));
         }
 
-        if ($request->filled('shift_id')) {
+        if ($hasFilter('shift_id')) {
             $query->where('shift_id', $request->input('shift_id'));
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+        $tab = $request->get('tab', 'directory');
+
+        // Work out today's attendance status for every employee matching the filters,
+        // so pill counts always reflect the current search/branch/department/shift.
+        $filtered = $query->get()->each(function (Employee $emp) {
+            $emp->setAttribute('today_status', $this->todayStatus($emp));
+        });
+
+        $counts = [
+            'all' => $filtered->count(),
+            'onsite' => $filtered->where('today_status', 'active')->count(),
+            'late' => $filtered->where('today_status', 'late')->count(),
+            'early' => $filtered->where('today_status', 'early')->count(),
+            'complete' => $filtered->where('today_status', 'complete')->count(),
+            'absent' => $filtered->where('today_status', 'absent')->count(),
+            'leave' => $filtered->where('today_status', 'on_leave')->count(),
+        ];
+
+        $status = $request->input('status', 'all');
+        if ($status && $status !== 'all') {
+            $filtered = $filtered->where('today_status', $status)->values();
         }
 
-        $tab = $request->get('tab', 'directory');
-        $employees = $query->paginate(25)->withQueryString();
+        $perPage = in_array((int) $request->input('per_page'), [25, 50, 100], true) ? (int) $request->input('per_page') : 25;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $employees = new LengthAwarePaginator(
+            $filtered->forPage($page, $perPage)->values(),
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $sites = Site::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
         $shifts = Shift::orderBy('name')->get();
         $managers = Employee::where('status', 'active')->orderBy('first_name')->get();
         $allEmployees = Employee::with(['site', 'department', 'shift', 'manager'])->orderBy('first_name')->get();
-
-        $counts = [
-            'all' => $allEmployees->count(),
-            'onsite' => $allEmployees->where('status', 'active')->count(),
-            'late' => 6,
-            'early' => 0,
-            'complete' => 0,
-            'absent' => 5,
-            'leave' => $allEmployees->where('status', 'on_leave')->count(),
-        ];
 
                 $reportRecords = collect();
         $reportKpis = [
@@ -136,6 +157,39 @@ class EmployeeController extends Controller
         }
 
         return view('employees.index', compact('employees', 'allEmployees', 'sites', 'departments', 'shifts', 'managers', 'tab', 'counts', 'reportRecords', 'reportKpis', 'selectedReportEmployee', 'reportDateRange', 'reportEmployeeId'));
+    }
+
+    /**
+     * Determine an employee's attendance status for today.
+     *
+     * Returns one of: on_leave, absent, active (on site), late, early, complete.
+     */
+    private function todayStatus(Employee $emp): string
+    {
+        $today = today();
+
+        if ($emp->status === 'on_leave'
+            || $emp->leaves->contains(fn ($leave) => $leave->date && Carbon::parse($leave->date)->isSameDay($today))) {
+            return 'on_leave';
+        }
+
+        $att = $emp->attendanceRecords->first();
+        if (! $att || ! $att->check_in_at) {
+            return 'absent';
+        }
+
+        if ($att->check_out_at) {
+            if ($emp->shift && $emp->shift->end_time) {
+                $shiftEnd = Carbon::parse($today->format('Y-m-d').' '.Carbon::parse($emp->shift->end_time)->format('H:i:s'));
+                if (Carbon::parse($att->check_out_at)->lt($shiftEnd)) {
+                    return 'early';
+                }
+            }
+
+            return 'complete';
+        }
+
+        return $att->status === 'late' ? 'late' : 'active';
     }
 
     /**
