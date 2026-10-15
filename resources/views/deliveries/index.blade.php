@@ -204,6 +204,12 @@
     <!-- Main Content -->
     <main id="main">
         <!-- Toast feedback -->
+        @if(session('error'))
+            <div style="position: fixed; top: 76px; right: 24px; z-index: 1000; max-width: 460px; background: #fdecec; border: 1px solid rgba(208, 59, 59, 0.35); color: #b42318; padding: 12px 16px; border-radius: 10px; box-shadow: 0 8px 24px -12px rgba(0,0,0,.25); font-size: 13.5px; font-weight: 500; display: flex; gap: 10px; align-items: flex-start;" id="errorToast">
+                <span>⚠ {{ session('error') }}</span>
+                <button type="button" onclick="this.parentElement.remove()" style="border: none; background: none; color: inherit; cursor: pointer; font-size: 14px;">✕</button>
+            </div>
+        @endif
         @if(session('success'))
             <div class="toast-container" id="toastContainer">
                 <div class="toast toast-success">

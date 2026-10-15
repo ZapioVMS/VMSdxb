@@ -48,8 +48,12 @@
             <form id="inviteForm" action="{{ route('pre_registrations.store') }}" method="POST">
                 @csrf
                 <input type="hidden" id="invite_method" name="_method" value="POST">
+                <input type="hidden" name="_form" value="invite">
+                <input type="hidden" name="_editing_invitation_id" id="invEditingId" value="">
+                <input type="hidden" name="_editing_status" id="invEditingStatus" value="">
 
                 <div class="modal-body">
+                    <div id="invFormError" style="display:none; margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; background: rgba(208, 59, 59, 0.10); border: 1px solid rgba(208, 59, 59, 0.30); color: #b42318; font-size: 13px; font-weight: 500;"></div>
                     <!-- Section 1: Visitor Information -->
                     <div class="section-label">Visitor Information</div>
                     <div class="field" style="margin-bottom: 12px;">
@@ -99,7 +103,7 @@
                     <fieldset id="inv_locked_sections" class="inv-locked-fs">
                         <div id="inv_locked_notice" class="lock-note" style="display: none;">
                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                            <span>This visitor is already checked in, so the arrival time and visit details can no longer be changed.</span>
+                            <span>This visitor has already checked in, so the arrival time and visit details can no longer be changed.</span>
                         </div>
                     <!-- Section 2: Visit Schedule -->
                     <div class="section-label">Visit Schedule</div>

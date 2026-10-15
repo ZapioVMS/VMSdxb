@@ -46,14 +46,11 @@ class GatePassController extends Controller
         // Search Filter
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $query->where(function ($q) use ($search) {
-                $q->where('pass_code', 'LIKE', "%{$search}%")
-                  ->orWhere('visitor_name', 'LIKE', "%{$search}%")
-                  ->orWhere('company_plate', 'LIKE', "%{$search}%")
-                  ->orWhere('carrier', 'LIKE', "%{$search}%")
-                  ->orWhere('tracking_number', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhere('office_unit', 'LIKE', "%{$search}%");
+            $like = '%' . mb_strtolower($search) . '%';
+            $query->where(function ($q) use ($like) {
+                foreach (['pass_code', 'visitor_name', 'company_plate', 'carrier', 'tracking_number', 'description', 'office_unit'] as $col) {
+                    $q->orWhereRaw('LOWER(COALESCE(' . $col . ", '')) LIKE ?", [$like]);
+                }
             });
         }
 

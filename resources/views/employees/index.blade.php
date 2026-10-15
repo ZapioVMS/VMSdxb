@@ -911,7 +911,8 @@
                         </div>
                         <div class="field">
                             <label>Email *</label>
-                            <input type="email" name="email" id="empEmail" required placeholder="employee@zapio.ae">
+                            <input type="email" name="email" id="empEmail" required placeholder="employee@zapio.ae" class="{{ $errors->has('email') && old('_form') === 'employee' ? 'is-invalid' : '' }}" oninput="this.classList.remove('is-invalid'); document.getElementById('empEmailError').style.display='none';">
+                            <div class="field-error" id="empEmailError" style="{{ $errors->has('email') && old('_form') === 'employee' ? '' : 'display:none;' }}">{{ $errors->first('email') }}</div>
                         </div>
                         <div class="field">
                             <label>Phone</label>
@@ -1546,6 +1547,8 @@
             const method = document.getElementById('employeeMethod');
 
             clearEmpCodeError();
+            document.getElementById('empEmail').classList.remove('is-invalid');
+            document.getElementById('empEmailError').style.display = 'none';
             document.getElementById('empEditingId').value = emp ? (emp.id || '') : '';
             if (emp) {
                 title.innerText = 'Edit Employee';
@@ -1753,6 +1756,11 @@
             set('empPhone', old.phone); set('empCode', old.employee_code); set('empSiteId', old.site_id);
             set('empDeptId', old.department_id); set('empJobTitle', old.job_title); set('empShiftId', old.shift_id);
             set('empManagerId', old.manager_id);
+            @if ($errors->has('email'))
+            document.getElementById('empEmail').classList.add('is-invalid');
+            document.getElementById('empEmailError').innerText = @json($errors->first('email'));
+            document.getElementById('empEmailError').style.display = '';
+            @endif
             @if ($errors->has('employee_code'))
             const codeInput = document.getElementById('empCode');
             const codeErr = document.getElementById('empCodeError');

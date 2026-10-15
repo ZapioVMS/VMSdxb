@@ -21,6 +21,10 @@
                                 $scheduledEnd = $visit->scheduled_end_at ?? null;
 
                                 $isToday = $scheduledStart ? $scheduledStart->isToday() : false;
+                                // Status shown = what actually happened to the visit (a checked-out visit shows "Checked out")
+                                $effStatus = $inv->status === 'cancelled'
+                                    ? 'cancelled'
+                                    : (in_array($visit->status ?? null, ['checked_in', 'checked_out'], true) ? $visit->status : $inv->status);
                                 $dateDisplay = $isToday ? 'Today' : ($scheduledStart ? $scheduledStart->format('D, M d, Y') : '—');
                                 $timeDisplay = $scheduledStart ? $scheduledStart->format('H:i') . ($scheduledEnd ? ' – ' . $scheduledEnd->format('H:i') : '') : '—';
                             @endphp
@@ -45,21 +49,23 @@
                                     <span class="chip chip-accent">{{ $visit->purpose->name ?? 'Meeting' }}</span>
                                 </td>
                                 <td>
-                                    @if ($inv->status === 'approved')
+                                    @if ($effStatus === 'approved')
                                         <span class="chip chip-good">Confirmed</span>
-                                    @elseif ($inv->status === 'checked_in')
+                                    @elseif ($effStatus === 'checked_in')
                                         <span class="chip chip-good">Checked in</span>
-                                    @elseif ($inv->status === 'pending')
+                                    @elseif ($effStatus === 'checked_out')
+                                        <span class="chip chip-muted" style="background: rgba(42, 92, 170, 0.10); color: #2a5caa;">Checked out</span>
+                                    @elseif ($effStatus === 'pending')
                                         <span class="chip chip-warning">Pending</span>
-                                    @elseif ($inv->status === 'cancelled')
+                                    @elseif ($effStatus === 'cancelled')
                                         <span class="chip chip-muted">Cancelled</span>
                                     @else
-                                        <span class="chip chip-muted">{{ ucfirst($inv->status) }}</span>
+                                        <span class="chip chip-muted">{{ ucfirst(str_replace('_', ' ', $effStatus)) }}</span>
                                     @endif
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                                        @if (($showCheckInButton ?? false) && $isToday && !in_array($inv->status, ['cancelled', 'checked_in'], true))
+                                        @if (($showCheckInButton ?? false) && $isToday && !in_array($effStatus, ['cancelled', 'checked_in', 'checked_out'], true))
                                         <form action="{{ route('pre_registrations.checkin', $inv->id) }}" method="POST" style="display:inline;" onsubmit="this.querySelector('button').disabled = true;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-primary" title="Check In" style="display: inline-flex; align-items: center; gap: 4px;">
@@ -81,7 +87,7 @@
                                         </button>
                                         <button class="btn btn-sm btn-ghost" onclick="openEditInviteModal({{ json_encode([
                                             'id' => $inv->id,
-                                            'status' => $inv->status,
+                                            'status' => $effStatus,
                                             'first_name' => $visitor->first_name ?? '',
                                             'last_name' => $visitor->last_name ?? '',
                                             'company_name' => $visitor->company_name ?? '',
@@ -114,7 +120,7 @@
                                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/></svg>
                                         </button>
 
-                                        @if (!in_array($inv->status, ['cancelled', 'checked_in'], true))
+                                        @if (!in_array($effStatus, ['cancelled', 'checked_in', 'checked_out'], true))
                                             <form action="{{ route('pre_registrations.resend', $inv->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-ghost" title="Resend Notification">
