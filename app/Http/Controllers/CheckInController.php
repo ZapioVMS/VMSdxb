@@ -61,6 +61,7 @@ class CheckInController extends Controller
             'visit.purpose'
         ])->whereHas('visit', function ($q) use ($orgId) {
             $q->where('organization_id', $orgId)
+              ->where(fn ($s) => $s->whereNull('source')->orWhere('source', '!=', 'walkin'))
               ->whereDate('scheduled_start_at', Carbon::today());
         })->where('status', '!=', 'cancelled')->get();
 

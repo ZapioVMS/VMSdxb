@@ -16,9 +16,10 @@ class DatabaseSeeder extends Seeder
             IdTypeSeeder::class,
             PermissionSeeder::class,
             DemoOrganizationSeeder::class,
+            DeliverySeeder::class,
             DeliveryAndMeetingRoomSeeder::class,
             FloorAndAreaSeeder::class,
-            GatePassSeeder::class,
+            RolesAndPermissionsSeeder::class,
         ]);
     }
 }

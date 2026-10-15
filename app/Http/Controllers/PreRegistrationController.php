@@ -41,7 +41,9 @@ class PreRegistrationController extends Controller
             'visit.purpose',
             'visit.visitorType'
         ])->whereHas('visit', function ($q) use ($orgId) {
-            $q->where('organization_id', $orgId);
+            $q->where('organization_id', $orgId)
+              // Only visitors added through Pre-Registration; walk-ins from the Check-In form never belong here
+              ->where(fn ($s) => $s->whereNull('source')->orWhere('source', '!=', 'walkin'));
         });
 
         // Compute top KPI statistics for upcoming visits (scheduled start >= start of today and not cancelled)
@@ -476,7 +478,9 @@ class PreRegistrationController extends Controller
             'visit.hostEmployee',
             'visit.purpose'
         ])->whereHas('visit', function ($q) use ($orgId) {
-            $q->where('organization_id', $orgId);
+            $q->where('organization_id', $orgId)
+              // Only visitors added through Pre-Registration; walk-ins from the Check-In form never belong here
+              ->where(fn ($s) => $s->whereNull('source')->orWhere('source', '!=', 'walkin'));
         });
 
         $tab = $request->query('tab', 'all');
