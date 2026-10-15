@@ -19,10 +19,11 @@ function openInviteModal() {
             document.getElementById('inv_expected_arrival').value = "10:00";
             document.getElementById('inv_duration').value = "60";
 
-            // Trigger host & room filtering
-            const siteId = document.getElementById('inv_site_id').value;
-            filterHostEmployeesBySite(siteId);
-            filterMeetingRoomsBySite(siteId);
+            // Branch is no longer chosen manually (it comes from the host employee),
+            // so list every host (minus anyone on leave) and every meeting room until a host is picked.
+            document.getElementById('inv_department_id').value = '';
+            filterHostEmployeesBySite('');
+            filterMeetingRoomsBySite('');
 
             document.getElementById('inviteModal').classList.add('open');
         }
@@ -66,8 +67,9 @@ function openInviteModal() {
             document.getElementById('inv_meeting_room').value = data.meeting_room || '';
             document.getElementById('inv_expected_visitor_count').value = data.expected_visitor_count || 1;
 
-            filterHostEmployeesBySite(data.site_id);
+            filterHostEmployeesBySite('');
             filterMeetingRoomsBySite(data.site_id);
+            // Setting .value does not fire onchange, so the saved department stays as stored.
             document.getElementById('inv_host_employee_id').value = data.host_employee_id || '';
 
             document.getElementById('inv_send_confirmation_email').checked = !!data.send_confirmation_email;
@@ -86,6 +88,29 @@ function openInviteModal() {
 
         function closeInviteModal() {
             document.getElementById('inviteModal').classList.remove('open');
+        }
+
+        // Host employee drives Department (auto-select) and the hidden Branch value.
+        function onInviteHostChange() {
+            const hostSelect = document.getElementById('inv_host_employee_id');
+            const deptSelect = document.getElementById('inv_department_id');
+            const siteInput = document.getElementById('inv_site_id');
+            const opt = hostSelect.options[hostSelect.selectedIndex];
+
+            if (!opt || !opt.value) {
+                deptSelect.value = '';
+                filterMeetingRoomsBySite('');
+                return;
+            }
+
+            // Department = the host's department ('' = "Auto-detect from host" if the host has none)
+            deptSelect.value = opt.getAttribute('data-department') || '';
+
+            // Branch = the host's branch (kept in the hidden site_id field)
+            const empSite = opt.getAttribute('data-site');
+            if (empSite) siteInput.value = empSite;
+
+            filterMeetingRoomsBySite(siteInput.value);
         }
 
         function filterHostEmployeesBySite(siteId) {

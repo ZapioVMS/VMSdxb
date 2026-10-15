@@ -562,20 +562,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="field">
-                            <label for="inv_site_id">Branch / Location *</label>
-                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value); filterMeetingRoomsBySite(this.value);">
-                                @foreach ($sites as $site)
-                                    <option value="{{ $site->id }}">{{ $site->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        {{-- Branch is no longer chosen manually: it is taken from the selected host employee. --}}
+                        <input type="hidden" id="inv_site_id" name="site_id" value="{{ $sites->first()->id ?? '' }}">
                         <div class="field">
                             <label for="inv_host_employee_id">Host Employee *</label>
-                            <select id="inv_host_employee_id" name="host_employee_id" required>
+                            <select id="inv_host_employee_id" name="host_employee_id" required onchange="onInviteHostChange()">
                                 <option value="">Select Host Employee</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
+                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}" data-department="{{ $employee->department_id }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -693,6 +687,29 @@
             document.getElementById('filterForm').submit();
         }
 
+        // Host employee drives Department (auto-select) and the hidden Branch value.
+        function onInviteHostChange() {
+            const hostSelect = document.getElementById('inv_host_employee_id');
+            const deptSelect = document.getElementById('inv_department_id');
+            const siteInput = document.getElementById('inv_site_id');
+            const opt = hostSelect.options[hostSelect.selectedIndex];
+
+            if (!opt || !opt.value) {
+                deptSelect.value = '';
+                filterMeetingRoomsBySite('');
+                return;
+            }
+
+            // Department = the host's department ('' = "Auto-detect from host" if the host has none)
+            deptSelect.value = opt.getAttribute('data-department') || '';
+
+            // Branch = the host's branch (kept in the hidden site_id field)
+            const empSite = opt.getAttribute('data-site');
+            if (empSite) siteInput.value = empSite;
+
+            filterMeetingRoomsBySite(siteInput.value);
+        }
+
         function filterHostEmployeesBySite(siteId) {
             const hostSelect = document.getElementById('inv_host_employee_id');
             const options = hostSelect.querySelectorAll('option');
@@ -755,10 +772,11 @@
             document.getElementById('inv_expected_arrival').value = "10:00";
             document.getElementById('inv_duration').value = "60";
 
-            // Trigger host & room filtering
-            const siteId = document.getElementById('inv_site_id').value;
-            filterHostEmployeesBySite(siteId);
-            filterMeetingRoomsBySite(siteId);
+            // Branch is no longer chosen manually (it comes from the host employee),
+            // so list every host and every meeting room until a host is picked.
+            document.getElementById('inv_department_id').value = '';
+            filterHostEmployeesBySite('');
+            filterMeetingRoomsBySite('');
 
             document.getElementById('inviteModal').classList.add('open');
         }
@@ -802,8 +820,9 @@
             document.getElementById('inv_meeting_room').value = data.meeting_room || '';
             document.getElementById('inv_expected_visitor_count').value = data.expected_visitor_count || 1;
 
-            filterHostEmployeesBySite(data.site_id);
+            filterHostEmployeesBySite('');
             filterMeetingRoomsBySite(data.site_id);
+            // Setting .value does not fire onchange, so the saved department stays as stored.
             document.getElementById('inv_host_employee_id').value = data.host_employee_id || '';
 
             document.getElementById('inv_send_confirmation_email').checked = !!data.send_confirmation_email;

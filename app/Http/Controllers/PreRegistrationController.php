@@ -124,10 +124,8 @@ class PreRegistrationController extends Controller
             });
         }
 
-        // Order by scheduled start time
-        $invitations = $query->get()->sortBy(function ($inv) {
-            return $inv->visit->scheduled_start_at ? $inv->visit->scheduled_start_at->timestamp : 0;
-        });
+        // Newest pre-registration first (invitations have no created_at, so the auto-increment id is the creation order)
+        $invitations = $query->orderByDesc('invitations.id')->get();
 
         // Form Master Data for Add/Edit Modal
         $sites = Site::where('status', 'active')->get();
@@ -193,7 +191,7 @@ class PreRegistrationController extends Controller
             // Section 4: Visit Details
             'purpose_id' => ['required', 'exists:visit_purposes,id'],
             'visitor_type_id' => ['nullable', 'exists:visitor_types,id'],
-            'site_id' => ['required', 'exists:sites,id'],
+            'site_id' => ['nullable', 'exists:sites,id'],
             'host_employee_id' => ['required', 'exists:employees,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'meeting_room' => ['nullable', 'string', 'max:255'],
@@ -266,20 +264,16 @@ class PreRegistrationController extends Controller
             $scheduledEnd = (clone $scheduledStart)->addMinutes($durationMinutes);
         }
 
-        // Determine department from host employee if not specified
-        $deptId = $validated['department_id'] ?? null;
-        if (!$deptId) {
-            $hostEmp = Employee::find($validated['host_employee_id']);
-            if ($hostEmp) {
-                $deptId = $hostEmp->department_id;
-            }
-        }
+        // Branch comes from the host employee; department defaults to the host's department
+        $hostEmp = Employee::find($validated['host_employee_id']);
+        $deptId = $validated['department_id'] ?? $hostEmp?->department_id;
+        $siteId = $hostEmp?->site_id ?? $validated['site_id'] ?? Site::query()->value('id');
 
         // Create Visit Record
         $visit = Visit::create([
             'organization_id' => $orgId,
             'visitor_id' => $visitor->id,
-            'site_id' => $validated['site_id'],
+            'site_id' => $siteId,
             'host_employee_id' => $validated['host_employee_id'],
             'department_id' => $deptId,
             'purpose_id' => $validated['purpose_id'],
@@ -345,7 +339,7 @@ class PreRegistrationController extends Controller
             'recurring' => ['nullable', 'string', 'in:none,daily,weekly,monthly'],
             'purpose_id' => ['required', 'exists:visit_purposes,id'],
             'visitor_type_id' => ['nullable', 'exists:visitor_types,id'],
-            'site_id' => ['required', 'exists:sites,id'],
+            'site_id' => ['nullable', 'exists:sites,id'],
             'host_employee_id' => ['required', 'exists:employees,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'meeting_room' => ['nullable', 'string', 'max:255'],
@@ -394,17 +388,14 @@ class PreRegistrationController extends Controller
             $scheduledEnd = (clone $scheduledStart)->addMinutes($durationMinutes);
         }
 
-        $deptId = $validated['department_id'] ?? null;
-        if (!$deptId) {
-            $hostEmp = Employee::find($validated['host_employee_id']);
-            if ($hostEmp) {
-                $deptId = $hostEmp->department_id;
-            }
-        }
+        // Branch comes from the host employee; department defaults to the host's department
+        $hostEmp = Employee::find($validated['host_employee_id']);
+        $deptId = $validated['department_id'] ?? $hostEmp?->department_id;
+        $siteId = $hostEmp?->site_id ?? $validated['site_id'] ?? Site::query()->value('id');
 
         // Update Visit
         $visit->update([
-            'site_id' => $validated['site_id'],
+            'site_id' => $siteId,
             'host_employee_id' => $validated['host_employee_id'],
             'department_id' => $deptId,
             'purpose_id' => $validated['purpose_id'],

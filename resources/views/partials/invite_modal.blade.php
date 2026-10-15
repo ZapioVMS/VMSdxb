@@ -176,20 +176,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="field">
-                            <label for="inv_site_id">Branch / Location *</label>
-                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value); filterMeetingRoomsBySite(this.value);">
-                                @foreach ($sites as $site)
-                                    <option value="{{ $site->id }}">{{ $site->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        {{-- Branch is no longer chosen manually: it is taken from the selected host employee. --}}
+                        <input type="hidden" id="inv_site_id" name="site_id" value="{{ $sites->first()->id ?? '' }}">
                         <div class="field">
                             <label for="inv_host_employee_id">Host Employee *</label>
-                            <select id="inv_host_employee_id" name="host_employee_id" required>
+                            <select id="inv_host_employee_id" name="host_employee_id" required onchange="onInviteHostChange()">
                                 <option value="">Select Host Employee</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}" data-leaves="{{ $employee->leaves ? $employee->leaves->pluck('date')->map(fn($d) => $d->format('Y-m-d'))->join(',') : '' }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
+                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}" data-department="{{ $employee->department_id }}" data-leaves="{{ $employee->leaves ? $employee->leaves->pluck('date')->map(fn($d) => $d->format('Y-m-d'))->join(',') : '' }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
                                 @endforeach
                             </select>
                         </div>
