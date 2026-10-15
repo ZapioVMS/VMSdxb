@@ -247,12 +247,22 @@ class LookupController extends Controller
 
     public function destroyShift(Request $request, Shift $shift)
     {
-        $shift->delete();
-        
+        // Employees on this shift block the delete (foreign key), so unassign them first.
+        $unassigned = \Illuminate\Support\Facades\DB::transaction(function () use ($shift) {
+            $count = \App\Models\Employee::where('shift_id', $shift->id)->update(['shift_id' => null]);
+            $shift->delete();
+
+            return $count;
+        });
+
+        $message = 'Shift "' . $shift->name . '" deleted.'
+            . ($unassigned ? ' ' . $unassigned . ' ' . ($unassigned === 1 ? 'employee is' : 'employees are') . ' now unassigned.' : '');
+
         if ($request->wantsJson()) {
-            return response()->json(['success' => true]);
+            session()->flash('success', $message); // shown after the page reloads
+            return response()->json(['success' => true, 'message' => $message]);
         }
-        return redirect()->back()->with('success', 'Shift deleted.');
+        return redirect()->back()->with('success', $message);
     }
 
     // --- FLOORS ---

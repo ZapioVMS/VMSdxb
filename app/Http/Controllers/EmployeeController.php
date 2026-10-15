@@ -160,6 +160,173 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Shifts → Manage Employees: save which employees work this shift.
+     * Ticked employees are moved to this shift; employees who were on it but are no longer ticked become unassigned.
+     * POST /shifts/{shift}/employees
+     */
+    public function assignShift(Request $request, Shift $shift): RedirectResponse
+    {
+        $validated = $request->validate([
+            'employee_ids' => ['nullable', 'array'],
+            'employee_ids.*' => ['integer'],
+        ]);
+
+        $ids = collect($validated['employee_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
+
+        $added = Employee::whereIn('id', $ids)
+            ->where(fn ($q) => $q->whereNull('shift_id')->orWhere('shift_id', '!=', $shift->id))
+            ->update(['shift_id' => $shift->id]);
+
+        $removed = Employee::where('shift_id', $shift->id)
+            ->whereNotIn('id', $ids->all() ?: [0])
+            ->update(['shift_id' => null]);
+
+        $total = Employee::where('shift_id', $shift->id)->count();
+
+        $parts = [];
+        if ($added) {
+            $parts[] = $added . ' added';
+        }
+        if ($removed) {
+            $parts[] = $removed . ' removed';
+        }
+
+        return redirect()->route('employees.index', ['tab' => 'shifts'])->with('success',
+            $shift->name . ': ' . $total . ' ' . ($total === 1 ? 'employee' : 'employees') . ' assigned'
+            . ($parts ? ' (' . implode(', ', $parts) . ').' : '. No changes.'));
+    }
+
+    /**
+     * Badge Check-In: find employees by Employee ID (exact match first) or name, with today's status.
+     * GET /employees/badge/lookup?q=EMP-001
+     */
+    public function badgeLookup(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '') {
+            return response()->json(['matches' => []]);
+        }
+
+        $needle = strtolower($q);
+        $employees = Employee::with(['department', 'shift', 'leaves', 'attendanceRecords' => function ($r) {
+                $r->whereDate('attendance_date', today())->orderByDesc('check_in_at');
+            }])
+            ->where(function ($w) use ($needle) {
+                $w->whereRaw('LOWER(employee_code) LIKE ?', ['%' . $needle . '%'])
+                  ->orWhereRaw("LOWER(first_name || ' ' || COALESCE(last_name, '')) LIKE ?", ['%' . $needle . '%']);
+            })
+            // exact Employee ID first, then IDs starting with the text, then the rest
+            ->orderByRaw('CASE WHEN LOWER(TRIM(employee_code)) = ? THEN 0 WHEN LOWER(employee_code) LIKE ? THEN 1 ELSE 2 END', [$needle, $needle . '%'])
+            ->orderBy('first_name')
+            ->limit(8)
+            ->get();
+
+        return response()->json([
+            'matches' => $employees->map(fn (Employee $e) => $this->badgeInfo($e))->values(),
+        ]);
+    }
+
+    /**
+     * Badge Check-In: check an employee in, or out if they are already checked in today.
+     * Accepts employee_id (picked from the search) or code (typed / scanned Employee ID),
+     * so a badge scanner can later post just the scanned code here.
+     * POST /employees/badge/punch
+     */
+    public function badgePunch(Request $request)
+    {
+        $request->validate([
+            'employee_id' => ['nullable', 'integer'],
+            'code' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $employee = null;
+        if ($request->filled('employee_id')) {
+            $employee = Employee::find($request->input('employee_id'));
+        } elseif ($request->filled('code')) {
+            $employee = Employee::whereRaw('LOWER(TRIM(employee_code)) = ?', [strtolower(trim($request->input('code')))])->first();
+        }
+
+        if (! $employee) {
+            return response()->json(['success' => false, 'message' => 'No employee found with that Employee ID.'], 404);
+        }
+
+        $employee->load(['department', 'shift', 'leaves', 'attendanceRecords' => function ($r) {
+            $r->whereDate('attendance_date', today())->orderByDesc('check_in_at');
+        }]);
+        $info = $this->badgeInfo($employee);
+
+        if ($info['next_action'] === null) {
+            return response()->json(['success' => false, 'message' => $info['blocked_reason'], 'employee' => $info], 422);
+        }
+
+        if ($info['next_action'] === 'check_out') {
+            $employee->attendanceRecords()
+                ->whereDate('attendance_date', today())
+                ->whereNull('check_out_at')
+                ->orderByDesc('check_in_at')
+                ->first()
+                ?->update(['check_out_at' => now()]);
+            $message = $employee->full_name . ' checked out at ' . now()->format('h:i A') . '.';
+        } else {
+            $this->checkin($request, $employee);
+            $message = $employee->full_name . ' checked in at ' . now()->format('h:i A') . '.';
+        }
+
+        $employee->load(['leaves', 'attendanceRecords' => function ($r) {
+            $r->whereDate('attendance_date', today())->orderByDesc('check_in_at');
+        }]);
+
+        return response()->json(['success' => true, 'message' => $message, 'employee' => $this->badgeInfo($employee)]);
+    }
+
+    /**
+     * Summary of an employee for the Badge Check-In panel, including what the next action would be.
+     */
+    private function badgeInfo(Employee $e): array
+    {
+        $status = $this->todayStatus($e);
+        $open = $e->attendanceRecords->first(fn ($r) => $r->check_in_at && ! $r->check_out_at);
+        $last = $e->attendanceRecords->first();
+
+        $labels = [
+            'on_leave' => 'On leave today',
+            'absent' => 'Not checked in',
+            'active' => 'On site',
+            'late' => 'On site (late)',
+            'early' => 'Checked out (early)',
+            'complete' => 'Checked out',
+        ];
+
+        $next = 'check_in';
+        $reason = null;
+        if ($open) {
+            $next = 'check_out';
+        } elseif ($e->status === 'inactive') {
+            $next = null;
+            $reason = $e->full_name . ' is inactive and cannot be checked in.';
+        } elseif ($status === 'on_leave') {
+            $next = null;
+            $reason = $e->full_name . ' is on leave today. Remove the leave first to check them in.';
+        }
+
+        return [
+            'id' => $e->id,
+            'code' => $e->employee_code,
+            'name' => $e->full_name,
+            'initials' => strtoupper(mb_substr($e->first_name ?? '', 0, 1) . mb_substr($e->last_name ?? '', 0, 1)),
+            'department' => $e->department->name ?? null,
+            'job_title' => $e->job_title,
+            'shift' => $e->shift->name ?? null,
+            'today_status' => $open ? ($open->status === 'late' ? 'late' : 'active') : $status,
+            'status_label' => $labels[$open ? ($open->status === 'late' ? 'late' : 'active') : $status] ?? ucfirst($status),
+            'check_in_at' => $last?->check_in_at ? Carbon::parse($last->check_in_at)->format('h:i A') : null,
+            'check_out_at' => $last?->check_out_at ? Carbon::parse($last->check_out_at)->format('h:i A') : null,
+            'next_action' => $next,
+            'blocked_reason' => $reason,
+        ];
+    }
+
+    /**
      * Determine an employee's attendance status for today.
      *
      * Returns one of: on_leave, absent, active (on site), late, early, complete.
@@ -193,6 +360,28 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Employee ID must be unique within the organisation (ignoring case and surrounding spaces).
+     * When editing, the employee's own current ID is allowed.
+     */
+    private function uniqueEmployeeCodeRule(?Employee $current = null): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail) use ($current) {
+            $code = strtolower(trim((string) $value));
+            if ($code === '') {
+                return;
+            }
+
+            $taken = Employee::whereRaw('LOWER(TRIM(employee_code)) = ?', [$code])
+                ->when($current, fn ($q) => $q->where('id', '!=', $current->id))
+                ->first();
+
+            if ($taken) {
+                $fail('Employee ID "' . trim((string) $value) . '" is already taken by ' . $taken->full_name . '. Please use a different Employee ID.');
+            }
+        };
+    }
+
+    /**
      * Store a newly created employee.
      */
     public function store(Request $request): RedirectResponse
@@ -200,7 +389,7 @@ class EmployeeController extends Controller
         $orgId = TenantScope::getTenantId();
 
         $validated = $request->validate([
-            'employee_code' => ['required', 'string', 'max:50'],
+            'employee_code' => ['required', 'string', 'max:50', $this->uniqueEmployeeCodeRule()],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255'],
@@ -213,6 +402,7 @@ class EmployeeController extends Controller
             'status' => ['nullable', 'string', 'in:active,inactive,on_leave'],
         ]);
 
+        $validated['employee_code'] = trim($validated['employee_code']);
         $validated['status'] = $validated['status'] ?? 'active';
 
         Employee::create(array_merge($validated, ['organization_id' => $orgId]));
@@ -226,7 +416,7 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee): RedirectResponse
     {
         $validated = $request->validate([
-            'employee_code' => ['required', 'string', 'max:50'],
+            'employee_code' => ['required', 'string', 'max:50', $this->uniqueEmployeeCodeRule($employee)],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255'],
@@ -239,6 +429,7 @@ class EmployeeController extends Controller
             'status' => ['nullable', 'string', 'in:active,inactive,on_leave'],
         ]);
 
+        $validated['employee_code'] = trim($validated['employee_code']);
         if (!isset($validated['status'])) {
             $validated['status'] = $employee->status; // preserve existing status if not provided
         }

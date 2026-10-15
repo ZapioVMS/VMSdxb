@@ -25,6 +25,7 @@ function openInviteModal() {
             filterHostEmployeesBySite('');
             filterMeetingRoomsBySite('');
 
+            setInviteScheduleLocked(false);
             document.getElementById('inviteModal').classList.add('open');
         }
 
@@ -83,7 +84,16 @@ function openInviteModal() {
             document.getElementById('inv_special_instructions').value = data.special_instructions || '';
             document.getElementById('inv_items_to_bring').value = data.items_to_bring || '';
 
+            setInviteScheduleLocked(data.status === 'checked_in');
             document.getElementById('inviteModal').classList.add('open');
+        }
+
+        // Arrival time & visit details are read-only once the visitor has checked in
+        function setInviteScheduleLocked(locked) {
+            const fs = document.getElementById('inv_locked_sections');
+            const note = document.getElementById('inv_locked_notice');
+            if (fs) fs.disabled = !!locked;
+            if (note) note.style.display = locked ? 'flex' : 'none';
         }
 
         function closeInviteModal() {

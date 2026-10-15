@@ -19,7 +19,9 @@ class EmployeeLeave extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        // Plain calendar date (e.g. 2026-10-20). Without the format, JSON output becomes a UTC
+        // timestamp ("2026-10-19T20:00:00Z" in Dubai time), which shifted leave days back by one in the calendar.
+        'date' => 'date:Y-m-d',
     ];
 
     public function employee(): BelongsTo

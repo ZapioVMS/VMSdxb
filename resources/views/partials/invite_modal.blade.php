@@ -23,6 +23,9 @@
         .modal-body::-webkit-scrollbar-thumb { background: #b0b8b6; border-radius: 99px; }
         .modal-body::-webkit-scrollbar-thumb:hover { background: #7c8985; }
         .modal-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+        .inv-locked-fs { border: 0; padding: 0; margin: 0; min-width: 0; }
+        .inv-locked-fs:disabled input, .inv-locked-fs:disabled select, .inv-locked-fs:disabled textarea { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+        .lock-note { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 12px; border-radius: var(--radius-sm); background: rgba(250, 178, 25, 0.16); border: 1px solid rgba(250, 178, 25, 0.40); color: #7a5200; font-size: 12.5px; }
         .section-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 16px 0 10px; border-top: 1px solid var(--border); padding-top: 14px; }
         .section-label:first-child { margin-top: 0; border-top: none; padding-top: 0; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -93,6 +96,11 @@
                         </div>
                     </div>
 
+                    <fieldset id="inv_locked_sections" class="inv-locked-fs">
+                        <div id="inv_locked_notice" class="lock-note" style="display: none;">
+                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                            <span>This visitor is already checked in, so the arrival time and visit details can no longer be changed.</span>
+                        </div>
                     <!-- Section 2: Visit Schedule -->
                     <div class="section-label">Visit Schedule</div>
                     <div class="form-grid">
@@ -215,6 +223,7 @@
                             <input type="number" id="inv_expected_visitor_count" name="expected_visitor_count" value="1" min="1">
                         </div>
                     </div>
+                    </fieldset>
 
                     <!-- Section 5: Access & Requirements -->
                     <div class="section-label">Access & Requirements</div>

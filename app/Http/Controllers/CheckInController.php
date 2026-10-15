@@ -22,6 +22,7 @@ use App\Models\Scopes\TenantScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Throwable;
@@ -132,6 +133,17 @@ class CheckInController extends Controller
                         }
                     })
                     ->first();
+            }
+
+            // A visitor can check in again on the same day only after checking out of the open visit
+            $openVisit = $this->findOpenVisitToday(
+                $visitor?->id,
+                $validated['email'] ?? null,
+                $fullPhone,
+                $validated['id_number']
+            );
+            if ($openVisit) {
+                return back()->withInput()->with('error', $this->alreadyCheckedInMessage($openVisit));
             }
 
             $nameParts = explode(' ', trim($validated['full_name']), 2);
@@ -246,6 +258,160 @@ class CheckInController extends Controller
         } catch (Throwable $e) {
             return back()->withInput()->with('error', 'Unable to complete check-in: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Check in a pre-registered visitor straight from their invitation (one click).
+     * Used by the "Check In" button on the Pre-Registration list and on the Check-In page's
+     * "Pre-Registered Visitors Expected Today" table.
+     */
+    public function checkInInvitation(Invitation $invitation): RedirectResponse
+    {
+        $invitation->load(['visit.visitor', 'visit.hostEmployee']);
+        $visit = $invitation->visit;
+        $visitor = $visit?->visitor;
+
+        if (!$visit || !$visitor) {
+            return back()->with('error', 'Unable to check in: the visit record for this pre-registration was not found.');
+        }
+
+        if ($invitation->status === 'cancelled' || $visit->status === 'cancelled') {
+            return back()->with('error', 'This pre-registration has been cancelled and cannot be checked in.');
+        }
+
+        if ($invitation->status === 'checked_in' || in_array($visit->status, ['checked_in', 'checked_out'], true)) {
+            return back()->with('error', $visitor->full_name . ' has already been checked in.');
+        }
+
+        if (!$visit->scheduled_start_at || !$visit->scheduled_start_at->isToday()) {
+            return back()->with('error', 'Only pre-registrations scheduled for today can be checked in.');
+        }
+
+        $openVisit = $this->findOpenVisitToday($visitor->id, $visitor->email, $visitor->phone, $visitor->id_number, $visit->id);
+        if ($openVisit) {
+            return back()->with('error', $this->alreadyCheckedInMessage($openVisit));
+        }
+
+        try {
+            $badgeNumber = DB::transaction(function () use ($invitation, $visit, $visitor) {
+                $orgId = $visit->organization_id;
+                $checkInAt = now();
+
+                // Keep the planned end time if it is still in the future; otherwise (late arrival)
+                // give the visitor their booked duration from now so they are not flagged as overstayed.
+                $scheduledEndAt = ($visit->scheduled_end_at && $visit->scheduled_end_at->gt($checkInAt))
+                    ? $visit->scheduled_end_at
+                    : (clone $checkInAt)->addMinutes((int) ($invitation->duration ?: 60));
+
+                $visit->update([
+                    'status' => 'checked_in',
+                    'check_in_at' => $checkInAt,
+                    'scheduled_end_at' => $scheduledEndAt,
+                ]);
+
+                $invitation->update(['status' => 'checked_in']);
+
+                // Watchlist screening (same rules as walk-in check-in)
+                $idHash = $visitor->id_number ? hash('sha256', strtolower(trim($visitor->id_number))) : null;
+                $fullName = strtolower(trim($visitor->full_name));
+
+                $watchlistEntry = WatchlistEntry::where('organization_id', $orgId)
+                    ->where(function ($q) use ($idHash, $fullName) {
+                        if ($idHash) {
+                            $q->where('id_number_hash', $idHash);
+                        }
+                        $q->orWhereRaw('LOWER(name) LIKE ?', ['%' . $fullName . '%']);
+                    })
+                    ->first();
+
+                if ($watchlistEntry) {
+                    WatchlistMatch::create([
+                        'organization_id' => $orgId,
+                        'visit_id' => $visit->id,
+                        'watchlist_entry_id' => $watchlistEntry->id,
+                        'match_type' => ($idHash && $watchlistEntry->id_number_hash === $idHash) ? 'exact_id' : 'fuzzy_name',
+                        'score' => 0.9500,
+                        'decision' => 'pending',
+                    ]);
+                }
+
+                // Issue badge (skip if one was already issued for this visit)
+                $existingBadge = Badge::where('visit_id', $visit->id)->first();
+                if ($existingBadge) {
+                    return $existingBadge->badge_number;
+                }
+
+                $badgeTemplate = BadgeTemplate::where('organization_id', $orgId)->first();
+                if (!$badgeTemplate) {
+                    $badgeTemplate = BadgeTemplate::create([
+                        'organization_id' => $orgId,
+                        'name' => 'Default Badge Template',
+                        'layout_json' => ['style' => 'gradient', 'color' => '#0c6b64'],
+                        'status' => 'active',
+                    ]);
+                }
+
+                $badgeNumber = 'MDK-' . strtoupper(Str::random(5));
+                Badge::create([
+                    'organization_id' => $orgId,
+                    'visit_id' => $visit->id,
+                    'badge_number' => $badgeNumber,
+                    'template_id' => $badgeTemplate->id,
+                    'issued_at' => $checkInAt,
+                    'expires_at' => $scheduledEndAt,
+                    'status' => 'issued',
+                ]);
+
+                return $badgeNumber;
+            });
+        } catch (Throwable $e) {
+            return back()->with('error', 'Unable to complete check-in: ' . $e->getMessage());
+        }
+
+        return back()->with('success', $visitor->full_name . ' checked in successfully. Badge ' . $badgeNumber . ' issued.');
+    }
+
+    /**
+     * Find a visit checked in today that has not been checked out yet for the same person.
+     * Same person = same visitor record, or same email, phone or ID number (ID numbers are
+     * stored encrypted, so they are compared in PHP on the small set of open visits).
+     */
+    private function findOpenVisitToday(?int $visitorId, ?string $email, ?string $phone, ?string $idNumber, ?int $excludeVisitId = null): ?Visit
+    {
+        $normEmail = fn ($v) => strtolower(trim((string) $v));
+        $normPhone = fn ($v) => preg_replace('/\D+/', '', (string) $v);          // digits only
+        $normId = fn ($v) => strtolower(preg_replace('/[^A-Za-z0-9]+/', '', (string) $v)); // ignore dashes/spaces
+        $email = $normEmail($email);
+        $phone = $normPhone($phone);
+        $idNumber = $normId($idNumber);
+
+        $openVisits = Visit::with(['visitor', 'badges'])
+            ->where('status', 'checked_in')
+            ->whereNull('check_out_at')
+            ->whereDate('check_in_at', Carbon::today())
+            ->when($excludeVisitId, fn ($q) => $q->where('id', '!=', $excludeVisitId))
+            ->get();
+
+        return $openVisits->first(function (Visit $open) use ($visitorId, $email, $phone, $idNumber, $normEmail, $normPhone, $normId) {
+            $v = $open->visitor;
+            if (!$v) {
+                return false;
+            }
+            return ($visitorId && (int) $v->id === (int) $visitorId)
+                || ($email !== '' && $normEmail($v->email) === $email)
+                || (strlen($phone) >= 6 && $normPhone($v->phone) === $phone)
+                || ($idNumber !== '' && $normId($v->id_number) === $idNumber);
+        });
+    }
+
+    private function alreadyCheckedInMessage(Visit $openVisit): string
+    {
+        $name = $openVisit->visitor?->full_name ?? 'This visitor';
+        $since = $openVisit->check_in_at ? ' since ' . $openVisit->check_in_at->format('h:i A') : '';
+        $badge = $openVisit->badges->first()?->badge_number;
+
+        return $name . ' is already checked in today' . $since . ($badge ? ' (badge ' . $badge . ')' : '')
+            . '. Please check them out before checking them in again.';
     }
 
     /**
