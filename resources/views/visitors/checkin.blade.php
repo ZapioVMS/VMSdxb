@@ -113,6 +113,21 @@
         .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
         .btn-primary:hover { background: var(--accent-hover); }
 
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-ghost { border-color: transparent; background: transparent; }
+        .btn-ghost:hover { background: var(--surface-2); }
+        .chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+        .dtable td { vertical-align: middle; }
+        .chip-good { background: rgba(12, 163, 12, 0.14); color: var(--good, #0ca30c); }
+        .chip-warning { background: rgba(250, 178, 25, 0.18); color: #8a5a00; }
+        .chip-muted { background: var(--surface-2); color: var(--text-muted); }
+        .chip-accent { background: var(--accent-soft); color: var(--accent); }
+        .cell-name { font-weight: 600; white-space: nowrap; }
+        .cell-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+        table.dtable { width: 100%; border-collapse: collapse; }
+        .dtable thead th { text-align: start; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+        .alert-success { background: rgba(12, 163, 12, 0.14); border: 1px solid rgba(12, 163, 12, 0.30); color: var(--good, #0ca30c); padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 18px; }
+
         .alert-danger { background: rgba(208, 59, 59, 0.10); border: 1px solid rgba(208, 59, 59, 0.25); color: var(--critical); padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 18px; }
         .banner-warn { background: rgba(250, 178, 25, 0.18); border: 1px solid rgba(250, 178, 25, 0.40); color: #7a5200; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 18px; display: none; }
 
@@ -215,6 +230,12 @@
                 </div>
                 <a href="{{ route('visitors.index') }}" class="btn">View Visitor Log</a>
             </div>
+
+            @if (session('success'))
+                <div class="alert-success">
+                    <strong>{{ session('success') }}</strong>
+                </div>
+            @endif
 
             @if (session('error'))
                 <div class="alert-danger">

@@ -93,6 +93,13 @@
 
         .select-filter { font-family: inherit; font-size: 13px; padding: 7px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); font-weight: 500; cursor: pointer; }
 
+        .tablefoot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-block-start: 1px solid var(--border); background: var(--surface-2); font-size: 12px; color: var(--text-secondary); }
+        .pager { display: flex; gap: 4px; align-items: center; }
+        .pager a { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text-secondary); font-size: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+        .pager a:hover:not(.disabled) { background: var(--surface-3); }
+        .pager a.disabled { opacity: .4; pointer-events: none; cursor: default; }
+        .pagesize { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .pagesize select { padding: 4px 8px; font-size: 12px; width: auto; border-radius: 6px; }
         .tablewrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
         table.dtable { width: 100%; border-collapse: collapse; }
         .dtable thead th { text-align: start; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
@@ -254,6 +261,7 @@
             <!-- Filter Bar -->
             <form action="{{ route('visitors.index') }}" method="GET" id="filterForm">
                 <input type="hidden" name="status" id="statusFilterInput" value="{{ request('status', 'all') }}">
+                <input type="hidden" name="per_page" value="{{ $perPageOption }}">
 
                 <div class="filterbar">
                     <div class="searchbox">
@@ -406,10 +414,30 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
 
-            <div style="margin-top:16px;">
-                {{ $visits->links() }}
+                <!-- Table Footer: record count, rows per page, pager -->
+                <div class="tablefoot">
+                    <span class="tabular">{{ $visits->total() }} records</span>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <div class="pagesize">
+                            <span>Rows per page</span>
+                            <select class="select-filter" onchange="setPerPage(this.value)">
+                                @foreach (['25', '50', '100', '500', 'all'] as $opt)
+                                    <option value="{{ $opt }}" {{ $perPageOption === $opt ? 'selected' : '' }}>{{ $opt === 'all' ? 'All' : $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="pager">
+                            <a href="{{ $visits->previousPageUrl() ?? 'javascript:void(0)' }}" class="{{ $visits->onFirstPage() ? 'disabled' : '' }}" {{ $visits->onFirstPage() ? 'tabindex=-1' : '' }} title="Previous page">
+                                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;transform:rotate(180deg);"><polyline points="9 18 15 12 9 6"/></svg>
+                            </a>
+                            <span class="mono">{{ $visits->currentPage() }} / {{ max(1, $visits->lastPage()) }}</span>
+                            <a href="{{ $visits->nextPageUrl() ?? 'javascript:void(0)' }}" class="{{ $visits->hasMorePages() ? '' : 'disabled' }}" {{ $visits->hasMorePages() ? '' : 'tabindex=-1' }} title="Next page">
+                                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><polyline points="9 18 15 12 9 6"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -528,6 +556,13 @@
     </div>
 
     <script>
+        function setPerPage(value) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        }
+
         function setStatusFilter(val) {
             document.getElementById('statusFilterInput').value = val;
             document.getElementById('filterForm').submit();

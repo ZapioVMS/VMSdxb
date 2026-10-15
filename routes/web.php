@@ -51,6 +51,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/pre-registrations/{invitation}', [PreRegistrationController::class, 'update'])->name('pre_registrations.update');
     Route::post('/pre-registrations/{invitation}/cancel', [PreRegistrationController::class, 'cancel'])->name('pre_registrations.cancel');
     Route::post('/pre-registrations/{invitation}/resend', [PreRegistrationController::class, 'resend'])->name('pre_registrations.resend');
+    Route::post('/pre-registrations/{invitation}/check-in', [CheckInController::class, 'checkInInvitation'])->name('pre_registrations.checkin');
     Route::get('/pre-registrations/export', [PreRegistrationController::class, 'export'])->name('pre_registrations.export');
 
     // Deliveries Routes
@@ -104,6 +105,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+    Route::post('/shifts/{shift}/employees', [EmployeeController::class, 'assignShift'])->name('shifts.employees.assign');
+    Route::get('/employees/badge/lookup', [EmployeeController::class, 'badgeLookup'])->name('employees.badge.lookup');
+    Route::post('/employees/badge/punch', [EmployeeController::class, 'badgePunch'])->name('employees.badge.punch');
     Route::post('/employees/{employee}/leave', [EmployeeController::class, 'toggleLeave'])->name('employees.leave');
     Route::get('/employees/{employee}/attendance', [EmployeeController::class, 'attendance'])->name('employees.attendance');
     Route::post('/employees/{employee}/checkin', [EmployeeController::class, 'checkin'])->name('employees.checkin');

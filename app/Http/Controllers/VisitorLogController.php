@@ -21,7 +21,14 @@ class VisitorLogController extends Controller
     {
         $query = $this->buildFilterQuery($request);
 
-        $visits = $query->paginate(25)->withQueryString();
+        // Paging: 25 / 50 / 100 / 500 rows per page, or "all" (default 25)
+        $perPageOption = (string) $request->query('per_page', '25');
+        if (!in_array($perPageOption, ['25', '50', '100', '500', 'all'], true)) {
+            $perPageOption = '25';
+        }
+        $perPage = $perPageOption === 'all' ? max(1, (clone $query)->reorder()->count()) : (int) $perPageOption;
+
+        $visits = $query->paginate($perPage)->withQueryString();
 
         $sites = Site::where('status', 'active')->orderBy('name')->get();
         $purposes = VisitPurpose::where('status', 'active')->orderBy('name')->get();
@@ -40,7 +47,7 @@ class VisitorLogController extends Controller
             })->count(),
         ];
 
-        return view('visitors.index', compact('visits', 'sites', 'purposes', 'stats'));
+        return view('visitors.index', compact('visits', 'sites', 'purposes', 'stats', 'perPageOption'));
     }
 
     /**
@@ -113,7 +120,10 @@ class VisitorLogController extends Controller
             'visitorType',
             'badges',
             'invitation',
-        ])->orderBy('check_in_at', 'desc');
+        ])
+            // Latest first by check-in time; visits not checked in yet fall back to their expected (scheduled) time
+            ->orderByRaw('COALESCE(visits.check_in_at, visits.scheduled_start_at) DESC NULLS LAST')
+            ->orderByDesc('visits.id');
 
         // Search Filter (Visitor name, phone, company, ID, or host name)
         if ($request->filled('search')) {

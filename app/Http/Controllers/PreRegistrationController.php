@@ -41,7 +41,9 @@ class PreRegistrationController extends Controller
             'visit.purpose',
             'visit.visitorType'
         ])->whereHas('visit', function ($q) use ($orgId) {
-            $q->where('organization_id', $orgId);
+            $q->where('organization_id', $orgId)
+              // Only visitors added through Pre-Registration; walk-ins from the Check-In form never belong here
+              ->where(fn ($s) => $s->whereNull('source')->orWhere('source', '!=', 'walkin'));
         });
 
         // Compute top KPI statistics for upcoming visits (scheduled start >= start of today and not cancelled)
@@ -97,37 +99,17 @@ class PreRegistrationController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        // Apply Branch / Site filter
-        if ($request->filled('site_id') && $request->query('site_id') !== 'all') {
-            $query->whereHas('visit', function ($q) use ($request) {
-                $q->where('site_id', $request->query('site_id'));
-            });
-        }
+        // Latest expected date first (the visit's scheduled start), newest record first for the same time
+        $this->orderByExpectedDate($query);
 
-        // Apply Search filter
-        if ($request->filled('search')) {
-            $search = strtolower(trim($request->query('search')));
-            $query->where(function ($q) use ($search) {
-                $q->where('access_code', 'ILIKE', "%{$search}%")
-                  ->orWhere('meeting_room', 'ILIKE', "%{$search}%")
-                  ->orWhereHas('visit.visitor', function ($vq) use ($search) {
-                      $vq->where('first_name', 'ILIKE', "%{$search}%")
-                        ->orWhere('last_name', 'ILIKE', "%{$search}%")
-                        ->orWhere('email', 'ILIKE', "%{$search}%")
-                        ->orWhere('phone', 'ILIKE', "%{$search}%")
-                        ->orWhere('company_name', 'ILIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('visit.hostEmployee', function ($hq) use ($search) {
-                      $hq->where('first_name', 'ILIKE', "%{$search}%")
-                        ->orWhere('last_name', 'ILIKE', "%{$search}%");
-                  });
-            });
+        // Paging: 25 / 50 / 100 / 500 rows per page, or "all" (default 25)
+        $perPageOption = (string) $request->query('per_page', '25');
+        if (!in_array($perPageOption, ['25', '50', '100', '500', 'all'], true)) {
+            $perPageOption = '25';
         }
+        $perPage = $perPageOption === 'all' ? max(1, (clone $query)->reorder()->count()) : (int) $perPageOption;
 
-        // Order by scheduled start time
-        $invitations = $query->get()->sortBy(function ($inv) {
-            return $inv->visit->scheduled_start_at ? $inv->visit->scheduled_start_at->timestamp : 0;
-        });
+        $invitations = $query->paginate($perPage)->withQueryString();
 
         // Form Master Data for Add/Edit Modal
         $sites = Site::where('status', 'active')->get();
@@ -149,6 +131,7 @@ class PreRegistrationController extends Controller
 
         return view('pre_registrations.index', compact(
             'invitations',
+            'perPageOption',
             'stats',
             'tab',
             'statusFilter',
@@ -193,7 +176,7 @@ class PreRegistrationController extends Controller
             // Section 4: Visit Details
             'purpose_id' => ['required', 'exists:visit_purposes,id'],
             'visitor_type_id' => ['nullable', 'exists:visitor_types,id'],
-            'site_id' => ['required', 'exists:sites,id'],
+            'site_id' => ['nullable', 'exists:sites,id'],
             'host_employee_id' => ['required', 'exists:employees,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'meeting_room' => ['nullable', 'string', 'max:255'],
@@ -259,27 +242,23 @@ class PreRegistrationController extends Controller
         $startTimeStr = $validated['expected_arrival'];
         $scheduledStart = Carbon::parse("{$visitDate} {$startTimeStr}");
 
-        $durationMinutes = $validated['duration'] ? (int) $validated['duration'] : 60;
+        $durationMinutes = !empty($validated['duration']) ? (int) $validated['duration'] : 60;
         if (!empty($validated['expected_departure'])) {
             $scheduledEnd = Carbon::parse("{$visitDate} {$validated['expected_departure']}");
         } else {
             $scheduledEnd = (clone $scheduledStart)->addMinutes($durationMinutes);
         }
 
-        // Determine department from host employee if not specified
-        $deptId = $validated['department_id'] ?? null;
-        if (!$deptId) {
-            $hostEmp = Employee::find($validated['host_employee_id']);
-            if ($hostEmp) {
-                $deptId = $hostEmp->department_id;
-            }
-        }
+        // Branch comes from the host employee; department defaults to the host's department
+        $hostEmp = Employee::find($validated['host_employee_id']);
+        $deptId = $validated['department_id'] ?? $hostEmp?->department_id;
+        $siteId = $hostEmp?->site_id ?? $validated['site_id'] ?? Site::query()->value('id');
 
         // Create Visit Record
         $visit = Visit::create([
             'organization_id' => $orgId,
             'visitor_id' => $visitor->id,
-            'site_id' => $validated['site_id'],
+            'site_id' => $siteId,
             'host_employee_id' => $validated['host_employee_id'],
             'department_id' => $deptId,
             'purpose_id' => $validated['purpose_id'],
@@ -326,7 +305,17 @@ class PreRegistrationController extends Controller
         public function update(Request $request, Invitation $invitation): RedirectResponse
     {
         \Log::info('Update Request Data:', $request->all());
-        $validated = $request->validate([
+        // Once the visitor has checked in, the arrival time (schedule) and visit details are locked:
+        // those fields are neither validated nor saved, even if they are sent in the request.
+        $isCheckedIn = $invitation->status === 'checked_in'
+            || in_array($invitation->visit?->status, ['checked_in', 'checked_out'], true);
+        $lockedFields = [
+            'visit_date', 'expected_arrival', 'expected_departure', 'duration', 'recurring',
+            'purpose_id', 'visitor_type_id', 'site_id', 'host_employee_id', 'department_id',
+            'meeting_room', 'expected_visitor_count',
+        ];
+
+        $rules = [
             'name' => ['nullable', 'string', 'max:255'],
             'first_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
@@ -345,7 +334,7 @@ class PreRegistrationController extends Controller
             'recurring' => ['nullable', 'string', 'in:none,daily,weekly,monthly'],
             'purpose_id' => ['required', 'exists:visit_purposes,id'],
             'visitor_type_id' => ['nullable', 'exists:visitor_types,id'],
-            'site_id' => ['required', 'exists:sites,id'],
+            'site_id' => ['nullable', 'exists:sites,id'],
             'host_employee_id' => ['required', 'exists:employees,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'meeting_room' => ['nullable', 'string', 'max:255'],
@@ -353,7 +342,13 @@ class PreRegistrationController extends Controller
 
             'special_instructions' => ['nullable', 'string', 'max:1000'],
             'items_to_bring' => ['nullable', 'string', 'max:1000'],
-        ]);
+        ];
+
+        if ($isCheckedIn) {
+            $rules = array_diff_key($rules, array_flip($lockedFields));
+        }
+
+        $validated = $request->validate($rules);
 
         $rawName = trim($request->input('name', ''));
         if (!empty($rawName)) {
@@ -383,28 +378,47 @@ class PreRegistrationController extends Controller
             'company_name' => $validated['company_name'] ?? null,
         ]);
 
+        $accessFlags = [
+            'send_confirmation_email' => $request->has('send_confirmation_email'),
+            'notify_host_on_arrival' => $request->has('notify_host_on_arrival'),
+            'send_qr_self_checkin' => $request->has('send_qr_self_checkin'),
+            'requires_nda' => $request->has('requires_nda'),
+            'wifi_guest_access' => $request->has('wifi_guest_access'),
+            'parking_required' => $request->has('parking_required'),
+            'escort_required' => $request->has('escort_required'),
+        ];
+
+        if ($isCheckedIn) {
+            // Only visitor information, access options and notes can still change.
+            $visit->update(['notes' => $validated['special_instructions'] ?? null]);
+
+            $invitation->update(array_merge([
+                'items_to_bring' => $validated['items_to_bring'] ?? null,
+                'special_instructions' => $validated['special_instructions'] ?? null,
+            ], $accessFlags));
+
+            return back()->with('success', 'Pre-registration updated. Arrival time and visit details are locked because the visitor has checked in.');
+        }
+
         // Calculate schedule times
         $visitDate = Carbon::parse($validated['visit_date'])->format('Y-m-d');
         $scheduledStart = Carbon::parse("{$visitDate} {$validated['expected_arrival']}");
 
-        $durationMinutes = $validated['duration'] ? (int) $validated['duration'] : 60;
+        $durationMinutes = !empty($validated['duration']) ? (int) $validated['duration'] : 60;
         if (!empty($validated['expected_departure'])) {
             $scheduledEnd = Carbon::parse("{$visitDate} {$validated['expected_departure']}");
         } else {
             $scheduledEnd = (clone $scheduledStart)->addMinutes($durationMinutes);
         }
 
-        $deptId = $validated['department_id'] ?? null;
-        if (!$deptId) {
-            $hostEmp = Employee::find($validated['host_employee_id']);
-            if ($hostEmp) {
-                $deptId = $hostEmp->department_id;
-            }
-        }
+        // Branch comes from the host employee; department defaults to the host's department
+        $hostEmp = Employee::find($validated['host_employee_id']);
+        $deptId = $validated['department_id'] ?? $hostEmp?->department_id;
+        $siteId = $hostEmp?->site_id ?? $validated['site_id'] ?? Site::query()->value('id');
 
         // Update Visit
         $visit->update([
-            'site_id' => $validated['site_id'],
+            'site_id' => $siteId,
             'host_employee_id' => $validated['host_employee_id'],
             'department_id' => $deptId,
             'purpose_id' => $validated['purpose_id'],
@@ -415,22 +429,15 @@ class PreRegistrationController extends Controller
         ]);
 
         // Update Invitation
-        $invitation->update([
+        $invitation->update(array_merge([
             'expected_visitor_count' => $validated['expected_visitor_count'] ?? 1,
             'items_to_bring' => $validated['items_to_bring'] ?? null,
             'special_instructions' => $validated['special_instructions'] ?? null,
             'meeting_room' => $validated['meeting_room'] ?? null,
             'recurring' => $validated['recurring'] ?? 'none',
             'duration' => $durationMinutes,
-            'send_confirmation_email' => $request->has('send_confirmation_email'),
-            'notify_host_on_arrival' => $request->has('notify_host_on_arrival'),
-            'send_qr_self_checkin' => $request->has('send_qr_self_checkin'),
-            'requires_nda' => $request->has('requires_nda'),
-            'wifi_guest_access' => $request->has('wifi_guest_access'),
-            'parking_required' => $request->has('parking_required'),
-            'escort_required' => $request->has('escort_required'),
             'expires_at' => $scheduledEnd,
-        ]);
+        ], $accessFlags));
 
         return back()->with('success', 'Pre-registration updated successfully.');
     }
@@ -471,7 +478,9 @@ class PreRegistrationController extends Controller
             'visit.hostEmployee',
             'visit.purpose'
         ])->whereHas('visit', function ($q) use ($orgId) {
-            $q->where('organization_id', $orgId);
+            $q->where('organization_id', $orgId)
+              // Only visitors added through Pre-Registration; walk-ins from the Check-In form never belong here
+              ->where(fn ($s) => $s->whereNull('source')->orWhere('source', '!=', 'walkin'));
         });
 
         $tab = $request->query('tab', 'all');
@@ -488,6 +497,8 @@ class PreRegistrationController extends Controller
                 $q->where('scheduled_start_at', '<', Carbon::today()->startOfDay());
             });
         }
+
+        $this->orderByExpectedDate($query);
 
         $invitations = $query->get();
 
@@ -524,5 +535,14 @@ class PreRegistrationController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Sort pre-registrations by expected date (visit scheduled start), latest first.
+     */
+    private function orderByExpectedDate($query): void
+    {
+        $query->orderByRaw('(SELECT visits.scheduled_start_at FROM visits WHERE visits.id = invitations.visit_id) DESC NULLS LAST')
+              ->orderByDesc('invitations.id');
     }
 }

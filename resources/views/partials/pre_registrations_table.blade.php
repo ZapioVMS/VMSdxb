@@ -36,7 +36,7 @@
                                         {{ $dateDisplay }}
                                     @endif
                                 </td>
-                                <td style="font-variant-numeric: tabular-nums;">{{ $timeDisplay }}</td>
+                                <td style="font-variant-numeric: tabular-nums; white-space: nowrap;">{{ $timeDisplay }}</td>
                                 <td>
                                     <div class="cell-name">{{ $host ? $host->full_name : '—' }}</div>
                                     <div class="cell-sub">{{ $visit->department->name ?? ($host->department->name ?? '') }}</div>
@@ -47,6 +47,8 @@
                                 <td>
                                     @if ($inv->status === 'approved')
                                         <span class="chip chip-good">Confirmed</span>
+                                    @elseif ($inv->status === 'checked_in')
+                                        <span class="chip chip-good">Checked in</span>
                                     @elseif ($inv->status === 'pending')
                                         <span class="chip chip-warning">Pending</span>
                                     @elseif ($inv->status === 'cancelled')
@@ -57,25 +59,14 @@
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                                        @if($showCheckInButton ?? false)
-                                        <button class="btn btn-sm" style="background-color: var(--accent); color: white; border: none; display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 4px;" title="Check In" onclick="prefillCheckinForm({{ json_encode([
-                                            'first_name' => $visitor->first_name ?? '',
-                                            'last_name' => $visitor->last_name ?? '',
-                                            'id_type_id' => $visitor->id_type_id ?? '',
-                                            'id_number' => $visitor->id_number ?? '',
-                                            'nationality_id' => $visitor->nationality_id ?? '',
-                                            'phone_code' => '971', // Extracting country code in JS if needed
-                                            'phone' => str_replace('+', '', $visitor->phone ?? ''),
-                                            'email' => $visitor->email ?? '',
-                                            'company_name' => $visitor->company_name ?? '',
-                                            'site_id' => $visit->site_id ?? '',
-                                            'host_employee_id' => $visit->host_employee_id ?? '',
-                                            'purpose_id' => $visit->purpose_id ?? '',
-                                            'duration' => $inv->duration ?? 60
-                                        ]) }})">
-                                            <svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                                            Check In
-                                        </button>
+                                        @if (($showCheckInButton ?? false) && $isToday && !in_array($inv->status, ['cancelled', 'checked_in'], true))
+                                        <form action="{{ route('pre_registrations.checkin', $inv->id) }}" method="POST" style="display:inline;" onsubmit="this.querySelector('button').disabled = true;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-primary" title="Check In" style="display: inline-flex; align-items: center; gap: 4px;">
+                                                <svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                                Check In
+                                            </button>
+                                        </form>
                                         @endif
                                         <button class="btn btn-sm btn-ghost" onclick="openQrModal({{ json_encode([
                                             'code' => $inv->access_code,
@@ -90,6 +81,7 @@
                                         </button>
                                         <button class="btn btn-sm btn-ghost" onclick="openEditInviteModal({{ json_encode([
                                             'id' => $inv->id,
+                                            'status' => $inv->status,
                                             'first_name' => $visitor->first_name ?? '',
                                             'last_name' => $visitor->last_name ?? '',
                                             'company_name' => $visitor->company_name ?? '',
@@ -122,7 +114,7 @@
                                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/></svg>
                                         </button>
 
-                                        @if ($inv->status !== 'cancelled')
+                                        @if (!in_array($inv->status, ['cancelled', 'checked_in'], true))
                                             <form action="{{ route('pre_registrations.resend', $inv->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-ghost" title="Resend Notification">

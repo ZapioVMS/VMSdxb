@@ -72,10 +72,13 @@
         .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
         .stat-value { font-size: 26px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 
-        .subtabs { display: flex; gap: 22px; border-bottom: 1px solid var(--border); margin-bottom: 18px; overflow-x: auto; }
-        .subtab { background: none; border: none; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted); padding: 9px 1px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; text-decoration: none; white-space: nowrap; }
+        .subtabs { display: flex; gap: 22px; box-shadow: inset 0 -1px 0 var(--border); margin-bottom: 18px; overflow-x: auto; overflow-y: hidden; }
+        .subtab { position: relative; background: none; border: none; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted); padding: 9px 2px 12px; cursor: pointer; text-decoration: none; white-space: nowrap; }
         .subtab:hover { color: var(--text-primary); }
-        .subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .subtab::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: transparent; transition: background-color .15s; }
+        .subtab:hover::after { background: var(--border); }
+        .subtab.active { color: var(--accent); }
+        .subtab.active::after { background: var(--accent); }
 
         .filterbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
         .pillrow { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -91,6 +94,14 @@
         }
         select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
+        .tablefoot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-block-start: 1px solid var(--border); background: var(--surface-2); font-size: 12px; color: var(--text-secondary); }
+        .pager { display: flex; gap: 4px; align-items: center; }
+        .pager a { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text-secondary); font-size: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+        .pager a:hover:not(.disabled) { background: var(--surface-3); }
+        .pager a.disabled { opacity: .4; pointer-events: none; cursor: default; }
+        .pagesize { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .pagesize select { padding: 4px 8px; font-size: 12px; width: auto; }
+        .mono { font-variant-numeric: tabular-nums; }
         .tablewrap { border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; background: var(--surface); }
         table.dtable { width: 100%; border-collapse: collapse; min-width: 780px; }
         .dtable thead th { text-align: start; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
@@ -121,6 +132,9 @@
         .modal-body::-webkit-scrollbar-thumb { background: #b0b8b6; border-radius: 99px; }
         .modal-body::-webkit-scrollbar-thumb:hover { background: #7c8985; }
         .modal-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+        .inv-locked-fs { border: 0; padding: 0; margin: 0; min-width: 0; }
+        .inv-locked-fs:disabled input, .inv-locked-fs:disabled select, .inv-locked-fs:disabled textarea { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+        .lock-note { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 12px; border-radius: var(--radius-sm); background: rgba(250, 178, 25, 0.16); border: 1px solid rgba(250, 178, 25, 0.40); color: #7a5200; font-size: 12.5px; }
         .section-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 16px 0 10px; border-top: 1px solid var(--border); padding-top: 14px; }
         .section-label:first-child { margin-top: 0; border-top: none; padding-top: 0; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -210,6 +224,13 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="alert-success" style="background: rgba(208, 59, 59, 0.10); border-color: rgba(208, 59, 59, 0.25); color: var(--critical);">
+                    <span><strong>{{ session('error') }}</strong></span>
+                    <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
+                </div>
+            @endif
+
             <!-- 4 Top KPI Stat Cards -->
             <div class="grid-4" style="margin-bottom: 18px;">
                 <div class="stat-tile">
@@ -232,11 +253,11 @@
 
             <!-- Subtabs: All Registrations, Today, Upcoming, Past, Custom range -->
             <div class="subtabs">
-                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'all'])) }}" class="subtab {{ $tab === 'all' ? 'active' : '' }}">All Registrations</a>
-                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'today'])) }}" class="subtab {{ $tab === 'today' ? 'active' : '' }}">Today</a>
-                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'upcoming'])) }}" class="subtab {{ $tab === 'upcoming' ? 'active' : '' }}">Upcoming</a>
-                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'past'])) }}" class="subtab {{ $tab === 'past' ? 'active' : '' }}">Past</a>
-                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'custom'])) }}" class="subtab {{ $tab === 'custom' ? 'active' : '' }}">Custom range</a>
+                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'all', 'page' => null])) }}" class="subtab {{ $tab === 'all' ? 'active' : '' }}">All Registrations</a>
+                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'today', 'page' => null])) }}" class="subtab {{ $tab === 'today' ? 'active' : '' }}">Today</a>
+                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'upcoming', 'page' => null])) }}" class="subtab {{ $tab === 'upcoming' ? 'active' : '' }}">Upcoming</a>
+                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'past', 'page' => null])) }}" class="subtab {{ $tab === 'past' ? 'active' : '' }}">Past</a>
+                <a href="{{ route('pre_registrations.index', array_merge(request()->query(), ['tab' => 'custom', 'page' => null])) }}" class="subtab {{ $tab === 'custom' ? 'active' : '' }}">Custom range</a>
             </div>
 
             <!-- Custom Date Range Filter Bar (Visible when Custom tab active) -->
@@ -244,6 +265,7 @@
                 <form action="{{ route('pre_registrations.index') }}" method="GET" class="filterbar" style="background: var(--surface); padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px;">
                     <input type="hidden" name="tab" value="custom">
                     <input type="hidden" name="status" value="{{ $statusFilter }}">
+                    <input type="hidden" name="per_page" value="{{ $perPageOption }}">
                     <div class="field" style="flex: 1; min-width: 160px;">
                         <label>From Date</label>
                         <input type="date" name="custom_from" value="{{ request()->query('custom_from') }}">
@@ -256,10 +278,11 @@
                 </form>
             @endif
 
-            <!-- Filter Bar: Status Pills, Branch, Search -->
+            <!-- Filter Bar: Status Pills -->
             <form action="{{ route('pre_registrations.index') }}" method="GET" id="filterForm" class="filterbar">
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 <input type="hidden" name="status" id="statusInput" value="{{ $statusFilter }}">
+                <input type="hidden" name="per_page" value="{{ $perPageOption }}">
                 @if(request()->filled('custom_from'))<input type="hidden" name="custom_from" value="{{ request('custom_from') }}">@endif
                 @if(request()->filled('custom_to'))<input type="hidden" name="custom_to" value="{{ request('custom_to') }}">@endif
 
@@ -269,25 +292,11 @@
                     <button type="button" class="statuspill {{ $statusFilter === 'pending' ? 'active' : '' }}" onclick="setStatusFilter('pending')" style="--pill-color: #8a5a00;">Pending</button>
                     <button type="button" class="statuspill {{ $statusFilter === 'cancelled' ? 'active' : '' }}" onclick="setStatusFilter('cancelled')" style="--pill-color: var(--text-muted);">Cancelled</button>
                 </div>
-
-                <div style="margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <select name="site_id" onchange="document.getElementById('filterForm').submit()" style="width: auto; min-width: 160px;">
-                        <option value="all">All Branches</option>
-                        @foreach ($sites as $site)
-                            <option value="{{ $site->id }}" {{ request()->query('site_id') == $site->id ? 'selected' : '' }}>{{ $site->name }}</option>
-                        @endforeach
-                    </select>
-
-                    <div class="searchbox">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
-                        <input type="text" name="search" placeholder="Search visitors, ID, company..." value="{{ request()->query('search') }}" onchange="document.getElementById('filterForm').submit()">
-                    </div>
-                </div>
             </form>
 
             <!-- Table of Pre-Registered Visitors -->
             <div class="tablewrap">
-                <table class="dtable">
+                    <table class="dtable">
                     <thead>
                         <tr>
                             <th>Visitor</th>
@@ -335,6 +344,8 @@
                                 <td>
                                     @if ($inv->status === 'approved')
                                         <span class="chip chip-good">Confirmed</span>
+                                    @elseif ($inv->status === 'checked_in')
+                                        <span class="chip chip-good">Checked in</span>
                                     @elseif ($inv->status === 'pending')
                                         <span class="chip chip-warning">Pending</span>
                                     @elseif ($inv->status === 'cancelled')
@@ -345,6 +356,15 @@
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                        @if ($isToday && !in_array($inv->status, ['cancelled', 'checked_in'], true))
+                                        <form action="{{ route('pre_registrations.checkin', $inv->id) }}" method="POST" style="display:inline;" onsubmit="this.querySelector('button').disabled = true;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-primary" title="Check In" style="display: inline-flex; align-items: center; gap: 4px;">
+                                                <svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                                Check In
+                                            </button>
+                                        </form>
+                                        @endif
                                         <button class="btn btn-sm btn-ghost" onclick="openQrModal({{ json_encode([
                                             'code' => $inv->access_code,
                                             'name' => $visitor ? $visitor->full_name : '',
@@ -358,6 +378,7 @@
                                         </button>
                                         <button class="btn btn-sm btn-ghost" onclick="openEditInviteModal({{ json_encode([
                                             'id' => $inv->id,
+                                            'status' => $inv->status,
                                             'first_name' => $visitor->first_name ?? '',
                                             'last_name' => $visitor->last_name ?? '',
                                             'company_name' => $visitor->company_name ?? '',
@@ -390,7 +411,7 @@
                                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/></svg>
                                         </button>
 
-                                        @if ($inv->status !== 'cancelled')
+                                        @if (!in_array($inv->status, ['cancelled', 'checked_in'], true))
                                             <form action="{{ route('pre_registrations.resend', $inv->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-ghost" title="Resend Notification">
@@ -416,6 +437,30 @@
                         @endforelse
                     </tbody>
                 </table>
+
+                <!-- Table Footer: record count, rows per page, pager -->
+                <div class="tablefoot">
+                    <span class="tabular">{{ $invitations->total() }} records</span>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <div class="pagesize">
+                            <span>Rows per page</span>
+                            <select onchange="setPerPage(this.value)">
+                                @foreach (['25', '50', '100', '500', 'all'] as $opt)
+                                    <option value="{{ $opt }}" {{ $perPageOption === $opt ? 'selected' : '' }}>{{ $opt === 'all' ? 'All' : $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="pager">
+                            <a href="{{ $invitations->previousPageUrl() ?? 'javascript:void(0)' }}" class="{{ $invitations->onFirstPage() ? 'disabled' : '' }}" {{ $invitations->onFirstPage() ? 'tabindex=-1' : '' }} title="Previous page">
+                                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;transform:rotate(180deg);"><polyline points="9 18 15 12 9 6"/></svg>
+                            </a>
+                            <span class="mono">{{ $invitations->currentPage() }} / {{ max(1, $invitations->lastPage()) }}</span>
+                            <a href="{{ $invitations->nextPageUrl() ?? 'javascript:void(0)' }}" class="{{ $invitations->hasMorePages() ? '' : 'disabled' }}" {{ $invitations->hasMorePages() ? '' : 'tabindex=-1' }} title="Next page">
+                                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><polyline points="9 18 15 12 9 6"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -479,6 +524,11 @@
                         </div>
                     </div>
 
+                    <fieldset id="inv_locked_sections" class="inv-locked-fs">
+                        <div id="inv_locked_notice" class="lock-note" style="display: none;">
+                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                            <span>This visitor is already checked in, so the arrival time and visit details can no longer be changed.</span>
+                        </div>
                     <!-- Section 2: Visit Schedule -->
                     <div class="section-label">Visit Schedule</div>
                     <div class="form-grid">
@@ -562,20 +612,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="field">
-                            <label for="inv_site_id">Branch / Location *</label>
-                            <select id="inv_site_id" name="site_id" required onchange="filterHostEmployeesBySite(this.value); filterMeetingRoomsBySite(this.value);">
-                                @foreach ($sites as $site)
-                                    <option value="{{ $site->id }}">{{ $site->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        {{-- Branch is no longer chosen manually: it is taken from the selected host employee. --}}
+                        <input type="hidden" id="inv_site_id" name="site_id" value="{{ $sites->first()->id ?? '' }}">
                         <div class="field">
                             <label for="inv_host_employee_id">Host Employee *</label>
-                            <select id="inv_host_employee_id" name="host_employee_id" required>
+                            <select id="inv_host_employee_id" name="host_employee_id" required onchange="onInviteHostChange()">
                                 <option value="">Select Host Employee</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
+                                    <option value="{{ $employee->id }}" data-site="{{ $employee->site_id }}" data-department="{{ $employee->department_id }}">{{ $employee->full_name }} ({{ $employee->department->name ?? 'General' }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -602,6 +646,7 @@
                             <input type="number" id="inv_expected_visitor_count" name="expected_visitor_count" value="1" min="1">
                         </div>
                     </div>
+                    </fieldset>
 
                     <!-- Section 5: Access & Requirements -->
                     <div class="section-label">Access & Requirements</div>
@@ -688,9 +733,39 @@
     </div>
 
     <script>
+        function setPerPage(value) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        }
+
         function setStatusFilter(status) {
             document.getElementById('statusInput').value = status;
             document.getElementById('filterForm').submit();
+        }
+
+        // Host employee drives Department (auto-select) and the hidden Branch value.
+        function onInviteHostChange() {
+            const hostSelect = document.getElementById('inv_host_employee_id');
+            const deptSelect = document.getElementById('inv_department_id');
+            const siteInput = document.getElementById('inv_site_id');
+            const opt = hostSelect.options[hostSelect.selectedIndex];
+
+            if (!opt || !opt.value) {
+                deptSelect.value = '';
+                filterMeetingRoomsBySite('');
+                return;
+            }
+
+            // Department = the host's department ('' = "Auto-detect from host" if the host has none)
+            deptSelect.value = opt.getAttribute('data-department') || '';
+
+            // Branch = the host's branch (kept in the hidden site_id field)
+            const empSite = opt.getAttribute('data-site');
+            if (empSite) siteInput.value = empSite;
+
+            filterMeetingRoomsBySite(siteInput.value);
         }
 
         function filterHostEmployeesBySite(siteId) {
@@ -755,11 +830,13 @@
             document.getElementById('inv_expected_arrival').value = "10:00";
             document.getElementById('inv_duration').value = "60";
 
-            // Trigger host & room filtering
-            const siteId = document.getElementById('inv_site_id').value;
-            filterHostEmployeesBySite(siteId);
-            filterMeetingRoomsBySite(siteId);
+            // Branch is no longer chosen manually (it comes from the host employee),
+            // so list every host and every meeting room until a host is picked.
+            document.getElementById('inv_department_id').value = '';
+            filterHostEmployeesBySite('');
+            filterMeetingRoomsBySite('');
 
+            setInviteScheduleLocked(false);
             document.getElementById('inviteModal').classList.add('open');
         }
 
@@ -802,8 +879,9 @@
             document.getElementById('inv_meeting_room').value = data.meeting_room || '';
             document.getElementById('inv_expected_visitor_count').value = data.expected_visitor_count || 1;
 
-            filterHostEmployeesBySite(data.site_id);
+            filterHostEmployeesBySite('');
             filterMeetingRoomsBySite(data.site_id);
+            // Setting .value does not fire onchange, so the saved department stays as stored.
             document.getElementById('inv_host_employee_id').value = data.host_employee_id || '';
 
             document.getElementById('inv_send_confirmation_email').checked = !!data.send_confirmation_email;
@@ -817,7 +895,16 @@
             document.getElementById('inv_special_instructions').value = data.special_instructions || '';
             document.getElementById('inv_items_to_bring').value = data.items_to_bring || '';
 
+            setInviteScheduleLocked(data.status === 'checked_in');
             document.getElementById('inviteModal').classList.add('open');
+        }
+
+        // Arrival time & visit details are read-only once the visitor has checked in
+        function setInviteScheduleLocked(locked) {
+            const fs = document.getElementById('inv_locked_sections');
+            const note = document.getElementById('inv_locked_notice');
+            if (fs) fs.disabled = !!locked;
+            if (note) note.style.display = locked ? 'flex' : 'none';
         }
 
         function closeInviteModal() {

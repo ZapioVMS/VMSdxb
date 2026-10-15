@@ -82,6 +82,27 @@
         .searchbox { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 7px 14px; color: var(--text-muted); }
         .searchbox input { border: none; background: none; outline: none; color: var(--text-primary); font-size: 13px; width: 100%; font-family: inherit; }
         .select-filter { font-family: inherit; font-size: 13px; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); font-weight: 500; cursor: pointer; }
+
+        /* Search suggestions */
+        .searchbox { position: relative; }
+        .suggest-list { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); max-height: 280px; overflow-y: auto; display: none; padding: 4px; }
+        .suggest-list.open { display: block; }
+        .suggest-item.kbd-active { background: var(--surface-2); }
+        .badge-msg { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
+        .badge-msg.ok { background: rgba(12, 163, 12, 0.12); border: 1px solid rgba(12, 163, 12, 0.3); color: var(--good); }
+        .badge-msg.err { background: rgba(208, 59, 59, 0.10); border: 1px solid rgba(208, 59, 59, 0.3); color: var(--critical); }
+        .badge-card { margin-top: 12px; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); flex-wrap: wrap; max-width: 640px; }
+        .badge-card .avatar-sq { width: 44px; height: 44px; font-size: 14px; }
+        .badge-action { min-width: 130px; justify-content: center; }
+        .badge-action.out { background: var(--surface); color: var(--critical); border-color: var(--critical); }
+        .badge-action:disabled { opacity: .5; cursor: not-allowed; }
+        .suggest-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-primary); }
+        .suggest-item:hover, .suggest-item.active { background: var(--accent-soft); }
+        .suggest-item .s-name { font-weight: 600; }
+        .suggest-item .s-sub { font-size: 11.5px; color: var(--text-muted); }
+        .suggest-item .s-code { font-size: 11.5px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+        .suggest-item mark { background: color-mix(in srgb, var(--warning) 35%, transparent); color: inherit; border-radius: 2px; }
+        .suggest-empty { padding: 10px; font-size: 12.5px; color: var(--text-muted); }
         
         .pillrow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
         .statuspill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--pill-color, var(--text-secondary)); font-family: inherit; text-decoration: none; }
@@ -95,6 +116,8 @@
         /* Tables */
         .tablewrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
         .tablewrap.scrollx { overflow-x: auto; }
+        .tablewrap.assign-scroll { overflow-y: auto; overscroll-behavior: contain; }
+        .tablewrap.assign-scroll thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); }
         table.dtable { width: 100%; border-collapse: collapse; min-width: 720px; }
         .dtable thead th { text-align: start; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: 11px 14px; border-block-end: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; }
         .dtable thead th.nosort { cursor: default; }
@@ -166,6 +189,9 @@
         .field { display: flex; flex-direction: column; gap: 5px; }
         .field label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
         .field input, .field select, .field textarea { font-family: inherit; font-size: 13.5px; padding: 9px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); width: 100%; box-sizing: border-box; }
+        .field input.is-invalid, .field select.is-invalid { border-color: var(--critical); box-shadow: 0 0 0 3px rgba(208, 59, 59, 0.12); }
+        .field input.is-invalid:focus { outline: 2px solid var(--critical); outline-offset: 0; border-color: var(--critical); }
+        .field-error { font-size: 12px; font-weight: 500; color: var(--critical); }
         .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-block-end: 1px solid var(--border); }
         .switchrow:last-child { border-block-end: none; }
         .switchrow .sr-label { font-size: 13px; font-weight: 600; }
@@ -268,6 +294,11 @@
                     ✓ {{ session('success') }}
                 </div>
             @endif
+            @if (session('error') || $errors->any())
+                <div class="card" style="background: rgba(208, 59, 59, 0.10); border-color: rgba(208, 59, 59, 0.30); color: var(--critical); padding: 12px 16px; margin-bottom: 16px; font-weight: 500;">
+                    ⚠ {{ session('error') ?? $errors->first() }}
+                </div>
+            @endif
 
             <!-- 2. Subtabs Navigation -->
             <div class="subtabs">
@@ -292,7 +323,8 @@
                     <div class="filterbar" style="align-items:center;">
                         <div class="searchbox grow" style="max-width:320px;">
                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" name="search" placeholder="Search employees..." value="{{ request('search') }}" onchange="this.form.submit()">
+                            <input type="text" name="search" id="empSearchInput" placeholder="Search by name or employee ID..." value="{{ request('search') }}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="empSuggestList" aria-expanded="false">
+                            <div class="suggest-list" id="empSuggestList" role="listbox"></div>
                         </div>
 
                         <select name="site_id" onchange="this.form.submit()" class="select-filter">
@@ -343,6 +375,92 @@
                         </button>
                     </div>
                 </form>
+
+                <script>
+                    (function () {
+                        const employees = @json($allEmployees->map(fn ($e) => ['name' => $e->full_name, 'code' => $e->employee_code, 'email' => $e->email])->values());
+                        const input = document.getElementById('empSearchInput');
+                        const list = document.getElementById('empSuggestList');
+                        const form = document.getElementById('directoryFilterForm');
+                        let activeIndex = -1;
+                        let current = [];
+
+                        const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                        const highlight = (text, q) => {
+                            const safe = escapeHtml(text);
+                            if (!q) return safe;
+                            const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+                            return safe.replace(re, '<mark>$1</mark>');
+                        };
+
+                        function close() {
+                            list.classList.remove('open');
+                            input.setAttribute('aria-expanded', 'false');
+                            activeIndex = -1;
+                        }
+
+                        function render(q) {
+                            const term = q.trim().toLowerCase();
+                            if (!term) { close(); return; }
+
+                            current = employees.filter(e =>
+                                (e.name || '').toLowerCase().includes(term) ||
+                                (e.code || '').toLowerCase().includes(term)
+                            ).slice(0, 8);
+
+                            list.innerHTML = current.length
+                                ? current.map((e, i) => `
+                                    <div class="suggest-item" role="option" data-index="${i}">
+                                        <div>
+                                            <div class="s-name">${highlight(e.name, q.trim())}</div>
+                                            <div class="s-sub">${escapeHtml(e.email || '')}</div>
+                                        </div>
+                                        <span class="s-code">${highlight(e.code, q.trim())}</span>
+                                    </div>`).join('')
+                                : '<div class="suggest-empty">No employees match “' + escapeHtml(q.trim()) + '”</div>';
+
+                            activeIndex = -1;
+                            list.classList.add('open');
+                            input.setAttribute('aria-expanded', 'true');
+                        }
+
+                        function choose(i) {
+                            const e = current[i];
+                            if (!e) return;
+                            input.value = e.code || e.name;
+                            close();
+                            form.submit();
+                        }
+
+                        function setActive(i) {
+                            const items = list.querySelectorAll('.suggest-item');
+                            if (!items.length) return;
+                            activeIndex = (i + items.length) % items.length;
+                            items.forEach((el, idx) => el.classList.toggle('active', idx === activeIndex));
+                            items[activeIndex].scrollIntoView({ block: 'nearest' });
+                        }
+
+                        input.addEventListener('input', () => render(input.value));
+                        input.addEventListener('focus', () => { if (input.value.trim()) render(input.value); });
+                        input.addEventListener('keydown', ev => {
+                            const open = list.classList.contains('open');
+                            if (ev.key === 'ArrowDown' && open) { ev.preventDefault(); setActive(activeIndex + 1); }
+                            else if (ev.key === 'ArrowUp' && open) { ev.preventDefault(); setActive(activeIndex - 1); }
+                            else if (ev.key === 'Enter') {
+                                if (open && activeIndex >= 0) { ev.preventDefault(); choose(activeIndex); }
+                                // otherwise the form submits with the typed text
+                            }
+                            else if (ev.key === 'Escape') { close(); }
+                        });
+                        list.addEventListener('mousedown', ev => {
+                            const item = ev.target.closest('.suggest-item');
+                            if (item) { ev.preventDefault(); choose(+item.dataset.index); }
+                        });
+                        document.addEventListener('click', ev => {
+                            if (!ev.target.closest('#empSuggestList') && ev.target !== input) close();
+                        });
+                    })();
+                </script>
 
                 <!-- Bulk Selection Bar -->
                 <div id="bulkActionBar" class="bulkbar" style="display:none;">
@@ -429,10 +547,10 @@
                     <div class="hstack" style="gap:16px;">
                         <div class="pagesize">
                             <span>Rows per page</span>
-                            <select class="select-filter" style="padding:4px 8px;font-size:12px;" onchange="location.href='?per_page='+this.value">
-                                <option value="25" selected>25</option>
-                                <option value="50">50</option>
-                                <option value="100">100</option>
+                            <select class="select-filter" style="padding:4px 8px;font-size:12px;" onchange="const u = new URL(window.location.href); u.searchParams.set('per_page', this.value); u.searchParams.delete('page'); location.href = u.toString();">
+                                @foreach ([25, 50, 100] as $size)
+                                    <option value="{{ $size }}" {{ $employees->perPage() == $size ? 'selected' : '' }}>{{ $size }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="pager">
@@ -452,16 +570,32 @@
             <div id="tab-attendance" style="display: {{ $tab === 'attendance' ? 'block' : 'none' }};">
                 <div class="card">
                     <div class="section-title">Badge Check-In</div>
-                    <div class="section-sub">Scan an employee’s QR badge (or type their code) to check them in or out.</div>
-                    <div class="hstack" style="gap:8px;flex-wrap:wrap;">
-                        <div class="searchbox grow" style="max-width:360px;">
+                    <div class="section-sub">Type an employee ID or name, pick the employee and check them in or out. A badge scanner that types the code and presses Enter works here too.</div>
+                    <div class="hstack" style="gap:8px;flex-wrap:wrap;align-items:flex-start;">
+                        <div class="searchbox grow" style="max-width:420px;">
                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                            <input type="text" id="kioskScanInput" placeholder="Scan or enter badge code..." autocomplete="off">
+                            <input type="text" id="kioskScanInput" placeholder="Enter employee ID or name (e.g. EMP-001)" autocomplete="off" aria-label="Employee ID or name">
+                            <div class="suggest-list" id="badgeSuggest" role="listbox"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="alert('Badge scan simulated.')">
-                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Submit</span>
+                        <button type="button" class="btn btn-primary" onclick="badgeSubmit()">
+                            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                            <span>Find</span>
                         </button>
+                    </div>
+
+                    <div id="badgeMsg" class="badge-msg" style="display:none;"></div>
+
+                    <div id="badgeCard" class="badge-card" style="display:none;">
+                        <div class="avatar-sq" id="badgeAvatar">EE</div>
+                        <div style="flex:1;min-width:180px;">
+                            <div style="font-weight:700;font-size:14.5px;" id="badgeName">—</div>
+                            <div class="cell-sub" id="badgeMeta">—</div>
+                            <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <span class="chip" id="badgeStatus">—</span>
+                                <span class="cell-sub" id="badgeTimes"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary badge-action" id="badgeAction" onclick="badgePunch()">Check In</button>
                     </div>
                 </div>
 
@@ -540,7 +674,9 @@
                                                 $hrs = floor($diffMins / 60);
                                                 $mins = $diffMins % 60;
                                                 $hoursStr = "{$hrs}h {$mins}m";
-                                                $statusStr = '<span class="chip" style="background:#f0f0f0;color:#666;">Complete</span>';
+                                                $statusStr = ($emp->today_status ?? null) === 'early'
+                                                    ? '<span class="chip chip-serious">Early Checkout</span>'
+                                                    : '<span class="chip" style="background:#f0f0f0;color:#666;">Complete</span>';
                                             } else {
                                                 if ($att->status === 'late') {
                                                     $statusStr = '<span class="chip chip-warning" style="background:#fff4e5;color:#b26a00;">Late Check-in</span>';
@@ -720,12 +856,12 @@
                                 </div>
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $sh->name }}</div>
-                                    <div class="cell-sub">{{ $empCount }} employees</div>
+                                    <div class="cell-sub">{{ $empCount }} {{ $empCount === 1 ? 'employee' : 'employees' }}</div>
                                 </div>
                                 <button type="button" class="icon-btn btn-ghost" onclick="openShiftModal({{ json_encode($sh) }})">
                                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                 </button>
-                                <button type="button" class="icon-btn btn-ghost icon-btn-danger" onclick="deleteShift({{ $sh->id }})">
+                                <button type="button" class="icon-btn btn-ghost icon-btn-danger" onclick="deleteShift({{ $sh->id }}, @js($sh->name), {{ $empCount }})">
                                     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                             </div>
@@ -761,6 +897,8 @@
             <form id="employeeForm" method="POST" action="{{ route('employees.store') }}">
                 @csrf
                 <input type="hidden" name="_method" id="employeeMethod" value="POST">
+                <input type="hidden" name="_form" value="employee">
+                <input type="hidden" name="_editing_employee_id" id="empEditingId" value="">
                 <div class="modal-body">
                     <div class="form-grid">
                         <div class="field">
@@ -781,7 +919,8 @@
                         </div>
                         <div class="field">
                             <label>Employee ID</label>
-                            <input type="text" name="employee_code" id="empCode" placeholder="EMP-001">
+                            <input type="text" name="employee_code" id="empCode" placeholder="EMP-001" class="{{ $errors->has('employee_code') ? 'is-invalid' : '' }}" oninput="clearEmpCodeError()">
+                            <div class="field-error" id="empCodeError" style="{{ $errors->has('employee_code') ? '' : 'display:none;' }}">{{ $errors->first('employee_code') }}</div>
                         </div>
                         <div class="field">
                             <label>Branch *</label>
@@ -1319,9 +1458,9 @@
                 <div class="filterbar" style="align-items:center;">
                     <div class="searchbox grow">
                         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" placeholder="Search employees..." oninput="filterAssignList(this.value)">
+                        <input type="text" id="assignSearch" placeholder="Search employees..." oninput="filterAssignList()">
                     </div>
-                    <select class="select-filter">
+                    <select class="select-filter" id="assignSiteFilter" onchange="filterAssignList()">
                         <option value="">All Branches</option>
                         @foreach ($sites as $s)
                             <option value="{{ $s->id }}">{{ $s->name }}</option>
@@ -1335,15 +1474,25 @@
                         <button type="button" class="btn btn-sm" onclick="selectAllAssign(false)">Clear</button>
                     </div>
                 </div>
-                <div class="tablewrap scrollx" style="max-height:300px;">
+                <div class="tablewrap scrollx assign-scroll" style="max-height:min(340px, 45vh);">
                     <table class="dtable" id="assignEmpTable">
+                        <thead>
+                            <tr>
+                                <th class="nosort" style="width:36px;"></th>
+                                <th class="nosort">Employee</th>
+                                <th class="nosort">Employee ID</th>
+                                <th class="nosort">Branch</th>
+                                <th class="nosort">Current Shift</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             @foreach ($allEmployees as $e)
-                                <tr>
-                                    <td style="width:36px;"><input type="checkbox" class="assign-check" value="{{ $e->id }}"></td>
+                                <tr class="assign-row" data-site="{{ $e->site_id }}" data-shift="{{ $e->shift_id }}" data-search="{{ strtolower($e->full_name . ' ' . $e->employee_code . ' ' . ($e->department->name ?? '')) }}" onclick="if (event.target.type !== 'checkbox') { const c = this.querySelector('.assign-check'); c.checked = !c.checked; updateAssignCount(); }" style="cursor:pointer;">
+                                    <td style="width:36px;"><input type="checkbox" class="assign-check" name="employee_ids[]" value="{{ $e->id }}" form="shiftAssignForm" onchange="updateAssignCount()"></td>
                                     <td><div class="cell-name">{{ $e->full_name }}</div><div class="cell-sub">{{ $e->department->name ?? '—' }}</div></td>
+                                    <td class="mono cell-sub">{{ $e->employee_code ?? '—' }}</td>
                                     <td class="cell-sub">{{ $e->site->name ?? '—' }}</td>
-                                    <td class="cell-sub">{{ $e->shift->name ?? 'Unassigned' }}</td>
+                                    <td class="cell-sub assign-current-shift">{{ $e->shift->name ?? 'Unassigned' }}<span class="chip chip-warning assign-move-note" style="display:none;margin-left:6px;">Will move</span></td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -1352,7 +1501,10 @@
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modalShiftAssign')">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="alert('Assignments updated.'); closeModal('modalShiftAssign');">Save</button>
+                <form id="shiftAssignForm" method="POST" action="" style="display:inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-primary" id="shiftAssignSave">Save</button>
+                </form>
             </div>
         </div>
     </div>
@@ -1393,6 +1545,8 @@
             const title = document.getElementById('employeeModalTitle');
             const method = document.getElementById('employeeMethod');
 
+            clearEmpCodeError();
+            document.getElementById('empEditingId').value = emp ? (emp.id || '') : '';
             if (emp) {
                 title.innerText = 'Edit Employee';
                 form.action = '/employees/' + emp.id;
@@ -1414,6 +1568,13 @@
                 form.reset();
             }
             openModal('modalEmployee');
+        }
+
+        function clearEmpCodeError() {
+            const input = document.getElementById('empCode');
+            const err = document.getElementById('empCodeError');
+            if (input) input.classList.remove('is-invalid');
+            if (err) { err.style.display = 'none'; err.innerText = ''; }
         }
 
         function openEmployeeQrModal(emp) {
@@ -1581,6 +1742,29 @@
             openModal('modalEmployeeDetail');
         }
 
+        @if ($errors->any() && old('_form') === 'employee')
+        // The last Add/Edit Employee save was rejected: reopen the form with what was typed and show the error
+        document.addEventListener('DOMContentLoaded', function () {
+            const old = @json(request()->old());
+            const editingId = old._editing_employee_id || '';
+            openEmployeeModal(editingId ? { id: editingId } : null);
+            const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+            set('empFirstName', old.first_name); set('empLastName', old.last_name); set('empEmail', old.email);
+            set('empPhone', old.phone); set('empCode', old.employee_code); set('empSiteId', old.site_id);
+            set('empDeptId', old.department_id); set('empJobTitle', old.job_title); set('empShiftId', old.shift_id);
+            set('empManagerId', old.manager_id);
+            @if ($errors->has('employee_code'))
+            const codeInput = document.getElementById('empCode');
+            const codeErr = document.getElementById('empCodeError');
+            codeInput.classList.add('is-invalid');
+            codeErr.innerText = @json($errors->first('employee_code'));
+            codeErr.style.display = '';
+            codeInput.focus();
+            codeInput.select();
+            @endif
+        });
+        @endif
+
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('attendanceFilter').addEventListener('change', function(e) {
                 const val = e.target.value;
@@ -1699,7 +1883,45 @@
 
         function openShiftAssignModal(sh) {
             document.getElementById('shiftAssignTitle').innerText = 'Assign Employees — ' + (sh.name || 'Shift');
+            document.getElementById('shiftAssignForm').action = '/shifts/' + sh.id + '/employees';
+            currentAssignShiftId = sh.id;
+            // Tick the employees who are already on this shift
+            document.querySelectorAll('#assignEmpTable .assign-row').forEach(row => {
+                row.querySelector('.assign-check').checked = String(row.dataset.shift) === String(sh.id);
+            });
+            document.getElementById('assignSearch').value = '';
+            document.getElementById('assignSiteFilter').value = '';
+            filterAssignList();
             openModal('modalShiftAssign');
+        }
+
+        function filterAssignList() {
+            const q = (document.getElementById('assignSearch').value || '').trim().toLowerCase();
+            const site = document.getElementById('assignSiteFilter').value;
+            document.querySelectorAll('#assignEmpTable .assign-row').forEach(row => {
+                const show = (!q || row.dataset.search.includes(q)) && (!site || String(row.dataset.site) === String(site));
+                row.style.display = show ? '' : 'none';
+            });
+            updateAssignCount();
+        }
+
+        // Select all / Clear apply to the employees currently shown by the search and branch filter
+        function selectAllAssign(checked) {
+            document.querySelectorAll('#assignEmpTable .assign-row').forEach(row => {
+                if (row.style.display !== 'none') row.querySelector('.assign-check').checked = checked;
+            });
+            updateAssignCount();
+        }
+
+        let currentAssignShiftId = null;
+
+        function updateAssignCount() {
+            document.querySelectorAll('#assignEmpTable .assign-row').forEach(row => {
+                const onOtherShift = row.dataset.shift && String(row.dataset.shift) !== String(currentAssignShiftId);
+                row.querySelector('.assign-move-note').style.display = (row.querySelector('.assign-check').checked && onOtherShift) ? '' : 'none';
+            });
+            const n = document.querySelectorAll('#assignEmpTable .assign-check:checked').length;
+            document.getElementById('assignSelectedCount').innerText = n + ' selected';
         }
 
         function toggleSelectAll(master) {
@@ -1732,6 +1954,170 @@
         function exportEmployeesCsv() {
             window.location.href = "{{ route('employees.index', array_merge(request()->query(), ['export' => 'csv'])) }}";
         }
+        /* ---------- Badge Check-In (type or scan an Employee ID) ---------- */
+        let badgeMatches = [];
+        let badgeActiveIdx = -1;
+        let badgeSelected = null;
+        let badgeTimer = null;
+        let badgeReqSeq = 0;
+
+        const badgeStatusChip = {
+            absent: 'chip-muted', active: 'chip-good', late: 'chip-warning',
+            early: 'chip-serious', complete: 'chip-muted', on_leave: 'chip-leave'
+        };
+        const badgeEsc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+        async function badgeFetch(q) {
+            const seq = ++badgeReqSeq;
+            const res = await fetch(`{{ route('employees.badge.lookup') }}?q=${encodeURIComponent(q)}`, { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (seq !== badgeReqSeq) return null; // a newer search has started
+            return data.matches || [];
+        }
+
+        function badgeRenderSuggest() {
+            const box = document.getElementById('badgeSuggest');
+            if (!badgeMatches.length) {
+                box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--text-muted);">No employee found</div>';
+                box.classList.add('open');
+                return;
+            }
+            box.innerHTML = badgeMatches.map((m, i) => `
+                <div class="suggest-item ${i === badgeActiveIdx ? 'kbd-active' : ''}" role="option" onmousedown="event.preventDefault(); badgeSelect(${i});">
+                    <span><strong class="mono">${badgeEsc(m.code)}</strong> &nbsp;${badgeEsc(m.name)}<span class="cell-sub" style="display:inline;"> · ${badgeEsc(m.department || '—')}</span></span>
+                    <span class="chip ${badgeStatusChip[m.today_status] || 'chip-muted'}">${badgeEsc(m.status_label)}</span>
+                </div>`).join('');
+            box.classList.add('open');
+        }
+
+        function badgeCloseSuggest() {
+            document.getElementById('badgeSuggest').classList.remove('open');
+            badgeActiveIdx = -1;
+        }
+
+        function badgeShowMsg(text, ok) {
+            const el = document.getElementById('badgeMsg');
+            if (!text) { el.style.display = 'none'; return; }
+            el.className = 'badge-msg ' + (ok ? 'ok' : 'err');
+            el.innerText = text;
+            el.style.display = '';
+        }
+
+        function badgeRenderCard(emp) {
+            badgeSelected = emp;
+            const card = document.getElementById('badgeCard');
+            if (!emp) { card.style.display = 'none'; return; }
+            document.getElementById('badgeAvatar').innerText = emp.initials || '?';
+            document.getElementById('badgeName').innerText = emp.name;
+            document.getElementById('badgeMeta').innerText = [emp.code, emp.department, emp.job_title, emp.shift ? 'Shift: ' + emp.shift : null].filter(Boolean).join(' · ');
+            const chip = document.getElementById('badgeStatus');
+            chip.className = 'chip ' + (badgeStatusChip[emp.today_status] || 'chip-muted');
+            chip.innerText = emp.status_label;
+            document.getElementById('badgeTimes').innerText = [emp.check_in_at ? 'In ' + emp.check_in_at : null, emp.check_out_at ? 'Out ' + emp.check_out_at : null].filter(Boolean).join(' · ');
+            const btn = document.getElementById('badgeAction');
+            btn.disabled = !emp.next_action;
+            btn.classList.toggle('out', emp.next_action === 'check_out');
+            btn.innerText = emp.next_action === 'check_out' ? 'Check Out' : 'Check In';
+            btn.title = emp.blocked_reason || '';
+            card.style.display = 'flex';
+            if (!emp.next_action && emp.blocked_reason) badgeShowMsg(emp.blocked_reason, false);
+        }
+
+        function badgeSelect(i) {
+            const emp = badgeMatches[i];
+            if (!emp) return;
+            badgeCloseSuggest();
+            badgeShowMsg('');
+            document.getElementById('kioskScanInput').value = emp.code;
+            badgeRenderCard(emp);
+            if (emp.next_action) document.getElementById('badgeAction').focus();
+        }
+
+        // Find button / Enter: exact Employee ID (or a single result) is picked straight away
+        async function badgeSubmit() {
+            const q = document.getElementById('kioskScanInput').value.trim();
+            if (!q) { badgeShowMsg('Enter an employee ID or name.', false); return; }
+            if (badgeActiveIdx >= 0 && badgeMatches[badgeActiveIdx]) { badgeSelect(badgeActiveIdx); return; }
+            const matches = await badgeFetch(q);
+            if (matches === null) return;
+            badgeMatches = matches;
+            const exact = matches.find(m => (m.code || '').trim().toLowerCase() === q.toLowerCase());
+            if (exact) { badgeSelect(matches.indexOf(exact)); return; }
+            if (matches.length === 1) { badgeSelect(0); return; }
+            badgeRenderCard(null);
+            if (!matches.length) { badgeCloseSuggest(); badgeShowMsg(`No employee found for "${q}".`, false); return; }
+            badgeShowMsg('');
+            badgeRenderSuggest();
+        }
+
+        async function badgePunch() {
+            if (!badgeSelected || !badgeSelected.next_action) return;
+            const btn = document.getElementById('badgeAction');
+            btn.disabled = true;
+            try {
+                const res = await fetch(`{{ route('employees.badge.punch') }}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ employee_id: badgeSelected.id })
+                });
+                const data = await res.json();
+                if (data.employee) badgeRenderCard(data.employee);
+                badgeShowMsg(data.message || (data.success ? 'Done.' : 'Could not update attendance.'), !!data.success);
+                if (data.success) {
+                    // Keep the confirmation across the refresh, then reload so Today's Attendance and the counts update
+                    try { sessionStorage.setItem('badgeLastMsg', data.message); } catch (e) {}
+                    setTimeout(() => window.location.reload(), 1200);
+                } else {
+                    btn.disabled = !(data.employee && data.employee.next_action);
+                }
+            } catch (e) {
+                badgeShowMsg('Server error. Please try again.', false);
+                btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('kioskScanInput');
+            if (!input) return;
+
+            input.addEventListener('input', () => {
+                clearTimeout(badgeTimer);
+                badgeRenderCard(null);
+                badgeShowMsg('');
+                const q = input.value.trim();
+                if (!q) { badgeMatches = []; badgeCloseSuggest(); return; }
+                badgeTimer = setTimeout(async () => {
+                    const matches = await badgeFetch(q);
+                    if (matches === null) return;
+                    badgeMatches = matches;
+                    badgeActiveIdx = -1;
+                    badgeRenderSuggest();
+                }, 200);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                const open = document.getElementById('badgeSuggest').classList.contains('open');
+                if (e.key === 'ArrowDown' && open && badgeMatches.length) {
+                    e.preventDefault(); badgeActiveIdx = (badgeActiveIdx + 1) % badgeMatches.length; badgeRenderSuggest();
+                } else if (e.key === 'ArrowUp' && open && badgeMatches.length) {
+                    e.preventDefault(); badgeActiveIdx = (badgeActiveIdx - 1 + badgeMatches.length) % badgeMatches.length; badgeRenderSuggest();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault(); clearTimeout(badgeTimer); badgeSubmit();
+                } else if (e.key === 'Escape') {
+                    badgeCloseSuggest();
+                }
+            });
+            input.addEventListener('blur', () => setTimeout(badgeCloseSuggest, 150));
+
+            // Show the result of the last check-in/out after the page refresh and get ready for the next one
+            let last = null;
+            try { last = sessionStorage.getItem('badgeLastMsg'); sessionStorage.removeItem('badgeLastMsg'); } catch (e) {}
+            if (last) {
+                badgeShowMsg(last, true);
+                if (document.getElementById('tab-attendance').style.display !== 'none') input.focus();
+            }
+        });
+
         function doCheckIn(empId) {
             fetch(`/employees/${empId}/checkin`, {
                 method: 'POST',
@@ -1772,9 +2158,13 @@
             });
         }
 
-        function deleteShift(id) {
-            if (!confirm('Are you sure you want to delete this shift?')) return;
-            
+        function deleteShift(id, name, empCount) {
+            const label = name ? `"${name}"` : 'this shift';
+            const msg = empCount > 0
+                ? `Delete ${label}? ${empCount} ${empCount === 1 ? 'employee is' : 'employees are'} on this shift and will become Unassigned.`
+                : `Delete ${label}?`;
+            if (!confirm(msg)) return;
+
             fetch(`/lookups/shifts/${id}`, {
                 method: 'POST',
                 headers: {
@@ -1791,7 +2181,7 @@
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    alert('Error deleting shift.');
+                    alert(data.message || 'Error deleting shift.');
                 }
             })
             .catch(err => {
