@@ -360,6 +360,25 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Employee email must be unique within the organisation (ignoring case and spaces); the employee's own email is allowed.
+     */
+    private function uniqueEmployeeEmailRule(?Employee $current = null): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail) use ($current) {
+            $email = strtolower(trim((string) $value));
+            if ($email === '') {
+                return;
+            }
+            $taken = Employee::whereRaw('LOWER(TRIM(email)) = ?', [$email])
+                ->when($current, fn ($q) => $q->where('id', '!=', $current->id))
+                ->first();
+            if ($taken) {
+                $fail('Email "' . trim((string) $value) . '" is already used by ' . $taken->full_name . ' (' . ($taken->employee_code ?: 'no ID') . '). Please use a different email.');
+            }
+        };
+    }
+
+    /**
      * Employee ID must be unique within the organisation (ignoring case and surrounding spaces).
      * When editing, the employee's own current ID is allowed.
      */
@@ -392,7 +411,7 @@ class EmployeeController extends Controller
             'employee_code' => ['required', 'string', 'max:50', $this->uniqueEmployeeCodeRule()],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255', $this->uniqueEmployeeEmailRule()],
             'phone' => ['nullable', 'string', 'max:50'],
             'job_title' => ['nullable', 'string', 'max:150'],
             'site_id' => ['nullable', 'exists:sites,id'],
@@ -419,7 +438,7 @@ class EmployeeController extends Controller
             'employee_code' => ['required', 'string', 'max:50', $this->uniqueEmployeeCodeRule($employee)],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255', $this->uniqueEmployeeEmailRule($employee)],
             'phone' => ['nullable', 'string', 'max:50'],
             'job_title' => ['nullable', 'string', 'max:150'],
             'site_id' => ['nullable', 'exists:sites,id'],

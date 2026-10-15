@@ -207,6 +207,12 @@
                 </div>
             </div>
 
+            @if (session('error'))
+                <div class="alert-success" style="background: rgba(208, 59, 59, 0.10); border-color: rgba(208, 59, 59, 0.30); color: var(--critical, #d03b3b);">
+                    <div><strong>⚠ {{ session('error') }}</strong></div>
+                </div>
+            @endif
+
             @if (session('success'))
                 <div class="alert-success">
                     <div>

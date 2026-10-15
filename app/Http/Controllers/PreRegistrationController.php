@@ -93,6 +93,25 @@ class PreRegistrationController extends Controller
             }
         }
 
+        // Search from the top bar: visitor name, email, phone, company, access code, meeting room or host name
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $like = '%' . mb_strtolower($search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(access_code) LIKE ?', [$like])
+                  ->orWhereRaw('LOWER(COALESCE(meeting_room, \'\')) LIKE ?', [$like])
+                  ->orWhereHas('visit.visitor', function ($vq) use ($like) {
+                      $vq->whereRaw("LOWER(first_name || ' ' || COALESCE(last_name, '')) LIKE ?", [$like])
+                        ->orWhereRaw('LOWER(COALESCE(email, \'\')) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(COALESCE(phone, \'\')) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(COALESCE(company_name, \'\')) LIKE ?', [$like]);
+                  })
+                  ->orWhereHas('visit.hostEmployee', function ($hq) use ($like) {
+                      $hq->whereRaw("LOWER(first_name || ' ' || COALESCE(last_name, '')) LIKE ?", [$like]);
+                  });
+            });
+        }
+
         // Apply Status Filter (all, approved, pending, cancelled)
         $statusFilter = $request->query('status', 'all');
         if ($statusFilter !== 'all') {
@@ -165,7 +184,7 @@ class PreRegistrationController extends Controller
             'id_number' => ['nullable', 'string', 'max:255'],
 
             // Section 2: Visit Schedule
-            'visit_date' => ['required', 'date'],
+            'visit_date' => ['required', 'date', 'after_or_equal:today'],
             'expected_arrival' => ['required', 'string'],
             'expected_departure' => ['nullable', 'string'],
             'duration' => ['nullable', 'integer', 'min:15'],
@@ -194,6 +213,8 @@ class PreRegistrationController extends Controller
             // Section 6: Additional Notes
             'special_instructions' => ['nullable', 'string', 'max:1000'],
             'items_to_bring' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'visit_date.after_or_equal' => 'The visit date cannot be in the past. Please choose today or a later date.',
         ]);
 
         $rawName = trim($request->input('name', ''));
@@ -209,6 +230,12 @@ class PreRegistrationController extends Controller
         $phoneNum = trim($request->input('phone', ''));
         $phoneCode = trim($request->input('phone_code', '971'));
         $fullPhone = $phoneNum ? ('+' . ltrim($phoneCode, '+') . ' ' . $phoneNum) : null;
+
+        // Stop a second booking for the same person on the same date until the first visit is checked out
+        $clash = $this->findActiveBookingOnDate($validated['visit_date'], $validated['email'], $fullPhone, $validated['id_number'] ?? null);
+        if ($clash) {
+            return back()->withInput()->with('error', $this->bookingClashMessage($clash, $validated['visit_date']));
+        }
 
         // Find or create Visitor
         $visitor = Visitor::where('organization_id', $orgId)
@@ -346,9 +373,27 @@ class PreRegistrationController extends Controller
 
         if ($isCheckedIn) {
             $rules = array_diff_key($rules, array_flip($lockedFields));
+        } else {
+            // A past date may stay as it is, but the visit cannot be moved to a date that has already gone
+            $currentDate = $invitation->visit?->scheduled_start_at?->format('Y-m-d');
+            if ($request->input('visit_date') !== $currentDate) {
+                $rules['visit_date'][] = 'after_or_equal:today';
+            }
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'visit_date.after_or_equal' => 'The visit date cannot be in the past. Please choose today or a later date.',
+        ]);
+
+        if (! $isCheckedIn) {
+            $phoneForCheck = trim((string) $request->input('phone', '')) !== ''
+                ? '+' . ltrim(trim((string) $request->input('phone_code', '971')), '+') . ' ' . trim((string) $request->input('phone'))
+                : null;
+            $clash = $this->findActiveBookingOnDate($validated['visit_date'], $validated['email'], $phoneForCheck, $validated['id_number'] ?? null, $invitation->visit_id);
+            if ($clash) {
+                return back()->withInput()->with('error', $this->bookingClashMessage($clash, $validated['visit_date']));
+            }
+        }
 
         $rawName = trim($request->input('name', ''));
         if (!empty($rawName)) {
@@ -447,6 +492,14 @@ class PreRegistrationController extends Controller
      */
     public function cancel(Invitation $invitation): RedirectResponse
     {
+        $visitStatus = $invitation->visit?->status;
+        if ($invitation->status === 'checked_in' || in_array($visitStatus, ['checked_in', 'checked_out'], true)) {
+            return back()->with('error', 'This visitor has already checked in, so the pre-registration can no longer be cancelled. Check them out from the Visitor Log instead.');
+        }
+        if ($invitation->status === 'cancelled') {
+            return back()->with('error', 'This pre-registration is already cancelled.');
+        }
+
         $invitation->update(['status' => 'cancelled']);
         if ($invitation->visit) {
             $invitation->visit->update(['status' => 'cancelled']);
@@ -527,7 +580,9 @@ class PreRegistrationController extends Controller
                     $v && $v->site ? $v->site->name : '',
                     $v && $v->scheduled_start_at ? $v->scheduled_start_at->format('Y-m-d') : '',
                     $v && $v->scheduled_start_at ? $v->scheduled_start_at->format('H:i') : '',
-                    ucfirst($inv->status),
+                    ucfirst(str_replace('_', ' ', $inv->status === 'cancelled'
+                        ? 'cancelled'
+                        : (in_array($inv->visit?->status, ['checked_in', 'checked_out'], true) ? $inv->visit->status : $inv->status))),
                 ]);
             }
 
@@ -544,5 +599,49 @@ class PreRegistrationController extends Controller
     {
         $query->orderByRaw('(SELECT visits.scheduled_start_at FROM visits WHERE visits.id = invitations.visit_id) DESC NULLS LAST')
               ->orderByDesc('invitations.id');
+    }
+
+    /**
+     * Find a visit on the given date for the same person that is still active (booked or on site, not checked out
+     * or cancelled). Same person = same phone number, email or ID number (ignoring spaces, dashes and case).
+     */
+    private function findActiveBookingOnDate(string $date, ?string $email, ?string $phone, ?string $idNumber, ?int $exceptVisitId = null): ?Visit
+    {
+        $normEmail = fn ($v) => strtolower(trim((string) $v));
+        $normPhone = fn ($v) => preg_replace('/\D+/', '', (string) $v);
+        $normId = fn ($v) => strtolower(preg_replace('/[^A-Za-z0-9]+/', '', (string) $v));
+        $email = $normEmail($email);
+        $phone = $normPhone($phone);
+        $idNumber = $normId($idNumber);
+
+        $day = Carbon::parse($date)->format('Y-m-d');
+
+        $visits = Visit::with(['visitor', 'invitation'])
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->whereNull('check_out_at')
+            ->where(fn ($q) => $q->whereDate('scheduled_start_at', $day)->orWhereDate('check_in_at', $day))
+            ->when($exceptVisitId, fn ($q) => $q->where('id', '!=', $exceptVisitId))
+            ->get()
+            ->reject(fn (Visit $v) => $v->invitation && $v->invitation->status === 'cancelled');
+
+        return $visits->first(function (Visit $v) use ($email, $phone, $idNumber, $normEmail, $normPhone, $normId) {
+            $p = $v->visitor;
+            if (! $p) {
+                return false;
+            }
+            return (strlen($phone) >= 6 && $normPhone($p->phone) === $phone)
+                || ($email !== '' && $normEmail($p->email) === $email)
+                || ($idNumber !== '' && $normId($p->id_number) === $idNumber);
+        });
+    }
+
+    private function bookingClashMessage(Visit $clash, string $date): string
+    {
+        $name = $clash->visitor?->full_name ?? 'This visitor';
+        $when = $clash->scheduled_start_at ? $clash->scheduled_start_at->format('h:i A') : '';
+        $state = $clash->status === 'checked_in' ? 'is currently checked in' : 'already has a pre-registration';
+
+        return $name . ' ' . $state . ' on ' . Carbon::parse($date)->format('d M Y') . ($when ? ' (' . $when . ')' : '')
+            . '. A new booking for the same date is allowed only after that visit is checked out or cancelled.';
     }
 }

@@ -420,10 +420,24 @@ class CheckInController extends Controller
      */
     public function checkout(Visit $visit): RedirectResponse
     {
+        $name = $visit->visitor?->full_name ?? 'This visitor';
+        if ($visit->check_out_at || $visit->status === 'checked_out') {
+            return back()->with('error', $name . ' was already checked out' . ($visit->check_out_at ? ' at ' . $visit->check_out_at->format('h:i A') : '') . '.');
+        }
+        if ($visit->status !== 'checked_in' || ! $visit->check_in_at) {
+            return back()->with('error', $name . ' is not checked in, so they cannot be checked out.');
+        }
+
         $visit->update([
             'status' => 'checked_out',
             'check_out_at' => now(),
         ]);
+
+        // Keep the linked pre-registration in step with the visit
+        $invitation = $visit->invitation;
+        if ($invitation && $invitation->status !== 'cancelled') {
+            $invitation->update(['status' => 'checked_out']);
+        }
 
         return back()->with('success', 'Visitor successfully checked out.');
     }

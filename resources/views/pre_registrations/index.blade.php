@@ -224,9 +224,9 @@
                 </div>
             @endif
 
-            @if (session('error'))
+            @if (session('error') || $errors->any())
                 <div class="alert-success" style="background: rgba(208, 59, 59, 0.10); border-color: rgba(208, 59, 59, 0.25); color: var(--critical);">
-                    <span><strong>{{ session('error') }}</strong></span>
+                    <span><strong>{{ session('error') ?? $errors->first() }}</strong></span>
                     <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
                 </div>
             @endif
@@ -266,6 +266,7 @@
                     <input type="hidden" name="tab" value="custom">
                     <input type="hidden" name="status" value="{{ $statusFilter }}">
                     <input type="hidden" name="per_page" value="{{ $perPageOption }}">
+                    @if(request()->filled('search'))<input type="hidden" name="search" value="{{ request('search') }}">@endif
                     <div class="field" style="flex: 1; min-width: 160px;">
                         <label>From Date</label>
                         <input type="date" name="custom_from" value="{{ request()->query('custom_from') }}">
@@ -278,11 +279,19 @@
                 </form>
             @endif
 
+            @if (request()->filled('search'))
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:13px; color:var(--text-secondary);">
+                    <span>Showing pre-registrations matching <strong style="color:var(--text-primary);">“{{ request('search') }}”</strong> — {{ $invitations->total() }} {{ $invitations->total() === 1 ? 'result' : 'results' }}</span>
+                    <a href="{{ route('pre_registrations.index', request()->except(['search', 'page'])) }}" class="btn btn-sm">✕ Clear search</a>
+                </div>
+            @endif
+
             <!-- Filter Bar: Status Pills -->
             <form action="{{ route('pre_registrations.index') }}" method="GET" id="filterForm" class="filterbar">
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 <input type="hidden" name="status" id="statusInput" value="{{ $statusFilter }}">
                 <input type="hidden" name="per_page" value="{{ $perPageOption }}">
+                @if(request()->filled('search'))<input type="hidden" name="search" value="{{ request('search') }}">@endif
                 @if(request()->filled('custom_from'))<input type="hidden" name="custom_from" value="{{ request('custom_from') }}">@endif
                 @if(request()->filled('custom_to'))<input type="hidden" name="custom_to" value="{{ request('custom_to') }}">@endif
 
@@ -318,6 +327,10 @@
                                 $scheduledEnd = $visit->scheduled_end_at ?? null;
 
                                 $isToday = $scheduledStart ? $scheduledStart->isToday() : false;
+                                // Status shown = what actually happened to the visit (a checked-out visit shows "Checked out")
+                                $effStatus = $inv->status === 'cancelled'
+                                    ? 'cancelled'
+                                    : (in_array($visit->status ?? null, ['checked_in', 'checked_out'], true) ? $visit->status : $inv->status);
                                 $dateDisplay = $isToday ? 'Today' : ($scheduledStart ? $scheduledStart->format('D, M d, Y') : '—');
                                 $timeDisplay = $scheduledStart ? $scheduledStart->format('H:i') . ($scheduledEnd ? ' – ' . $scheduledEnd->format('H:i') : '') : '—';
                             @endphp
@@ -342,21 +355,23 @@
                                     <span class="chip chip-accent">{{ $visit->purpose->name ?? 'Meeting' }}</span>
                                 </td>
                                 <td>
-                                    @if ($inv->status === 'approved')
+                                    @if ($effStatus === 'approved')
                                         <span class="chip chip-good">Confirmed</span>
-                                    @elseif ($inv->status === 'checked_in')
+                                    @elseif ($effStatus === 'checked_in')
                                         <span class="chip chip-good">Checked in</span>
-                                    @elseif ($inv->status === 'pending')
+                                    @elseif ($effStatus === 'checked_out')
+                                        <span class="chip chip-muted" style="background: rgba(42, 92, 170, 0.10); color: #2a5caa;">Checked out</span>
+                                    @elseif ($effStatus === 'pending')
                                         <span class="chip chip-warning">Pending</span>
-                                    @elseif ($inv->status === 'cancelled')
+                                    @elseif ($effStatus === 'cancelled')
                                         <span class="chip chip-muted">Cancelled</span>
                                     @else
-                                        <span class="chip chip-muted">{{ ucfirst($inv->status) }}</span>
+                                        <span class="chip chip-muted">{{ ucfirst(str_replace('_', ' ', $effStatus)) }}</span>
                                     @endif
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                                        @if ($isToday && !in_array($inv->status, ['cancelled', 'checked_in'], true))
+                                        @if ($isToday && !in_array($effStatus, ['cancelled', 'checked_in', 'checked_out'], true))
                                         <form action="{{ route('pre_registrations.checkin', $inv->id) }}" method="POST" style="display:inline;" onsubmit="this.querySelector('button').disabled = true;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-primary" title="Check In" style="display: inline-flex; align-items: center; gap: 4px;">
@@ -378,7 +393,7 @@
                                         </button>
                                         <button class="btn btn-sm btn-ghost" onclick="openEditInviteModal({{ json_encode([
                                             'id' => $inv->id,
-                                            'status' => $inv->status,
+                                            'status' => $effStatus,
                                             'first_name' => $visitor->first_name ?? '',
                                             'last_name' => $visitor->last_name ?? '',
                                             'company_name' => $visitor->company_name ?? '',
@@ -411,7 +426,7 @@
                                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/></svg>
                                         </button>
 
-                                        @if (!in_array($inv->status, ['cancelled', 'checked_in'], true))
+                                        @if (!in_array($effStatus, ['cancelled', 'checked_in', 'checked_out'], true))
                                             <form action="{{ route('pre_registrations.resend', $inv->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-ghost" title="Resend Notification">
@@ -476,8 +491,12 @@
             <form id="inviteForm" action="{{ route('pre_registrations.store') }}" method="POST">
                 @csrf
                 <input type="hidden" id="invite_method" name="_method" value="POST">
+                <input type="hidden" name="_form" value="invite">
+                <input type="hidden" name="_editing_invitation_id" id="invEditingId" value="">
+                <input type="hidden" name="_editing_status" id="invEditingStatus" value="">
 
                 <div class="modal-body">
+                    <div id="invFormError" style="display:none; margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; background: rgba(208, 59, 59, 0.10); border: 1px solid rgba(208, 59, 59, 0.30); color: #b42318; font-size: 13px; font-weight: 500;"></div>
                     <!-- Section 1: Visitor Information -->
                     <div class="section-label">Visitor Information</div>
                     <div class="field" style="margin-bottom: 12px;">
@@ -527,7 +546,7 @@
                     <fieldset id="inv_locked_sections" class="inv-locked-fs">
                         <div id="inv_locked_notice" class="lock-note" style="display: none;">
                             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                            <span>This visitor is already checked in, so the arrival time and visit details can no longer be changed.</span>
+                            <span>This visitor has already checked in, so the arrival time and visit details can no longer be changed.</span>
                         </div>
                     <!-- Section 2: Visit Schedule -->
                     <div class="section-label">Visit Schedule</div>
@@ -836,6 +855,10 @@
             filterHostEmployeesBySite('');
             filterMeetingRoomsBySite('');
 
+            document.getElementById('invEditingId').value = '';
+            document.getElementById('invEditingStatus').value = '';
+            document.getElementById('invFormError').style.display = 'none';
+            document.getElementById('inv_visit_date').min = "{{ date('Y-m-d') }}";
             setInviteScheduleLocked(false);
             document.getElementById('inviteModal').classList.add('open');
         }
@@ -895,7 +918,13 @@
             document.getElementById('inv_special_instructions').value = data.special_instructions || '';
             document.getElementById('inv_items_to_bring').value = data.items_to_bring || '';
 
-            setInviteScheduleLocked(data.status === 'checked_in');
+            document.getElementById('invEditingId').value = data.id || '';
+            document.getElementById('invEditingStatus').value = data.status || '';
+            document.getElementById('invFormError').style.display = 'none';
+            // past dates can't be chosen; an existing past date may stay as it is
+            const todayStr = "{{ date('Y-m-d') }}";
+            document.getElementById('inv_visit_date').min = (data.visit_date && data.visit_date < todayStr) ? data.visit_date : todayStr;
+            setInviteScheduleLocked(['checked_in', 'checked_out'].includes(data.status));
             document.getElementById('inviteModal').classList.add('open');
         }
 
@@ -906,6 +935,42 @@
             if (fs) fs.disabled = !!locked;
             if (note) note.style.display = locked ? 'flex' : 'none';
         }
+
+        @if ((session('error') || $errors->any()) && old('_form') === 'invite')
+        // The last pre-registration save was refused: reopen the form with what was typed and show why
+        document.addEventListener('DOMContentLoaded', function () {
+            const old = @json(request()->old());
+            if (old._editing_invitation_id) {
+                openEditInviteModal({ id: old._editing_invitation_id, status: old._editing_status || '' });
+            } else {
+                openInviteModal();
+            }
+            const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+            set('inv_name', old.name);
+            set('inv_company_name', old.company_name);
+            set('inv_email', old.email);
+            set('inv_phone_code', old.phone_code);
+            set('inv_phone', old.phone);
+            set('inv_id_type_id', old.id_type_id);
+            set('inv_id_number', old.id_number);
+            set('inv_visit_date', old.visit_date);
+            set('inv_expected_arrival', old.expected_arrival);
+            set('inv_expected_departure', old.expected_departure);
+            set('inv_duration', old.duration);
+            set('inv_recurring', old.recurring);
+            set('inv_purpose_id', old.purpose_id);
+            set('inv_visitor_type_id', old.visitor_type_id);
+            set('inv_host_employee_id', old.host_employee_id);
+            set('inv_department_id', old.department_id);
+            set('inv_meeting_room', old.meeting_room);
+            set('inv_expected_visitor_count', old.expected_visitor_count);
+            set('inv_special_instructions', old.special_instructions);
+            set('inv_items_to_bring', old.items_to_bring);
+            ['send_confirmation_email', 'notify_host_on_arrival', 'send_qr_self_checkin', 'requires_nda', 'wifi_guest_access', 'parking_required', 'escort_required'].forEach(k => { const el = document.getElementById('inv_' + k); if (el) el.checked = !!old[k]; });
+            const err = document.getElementById('invFormError');
+            if (err) { err.innerText = @json(session('error') ?? $errors->first()); err.style.display = ''; }
+        });
+        @endif
 
         function closeInviteModal() {
             document.getElementById('inviteModal').classList.remove('open');

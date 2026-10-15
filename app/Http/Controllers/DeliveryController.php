@@ -29,12 +29,11 @@ class DeliveryController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $query->where(function ($q) use ($search) {
-                $q->where('description', 'LIKE', "%{$search}%")
-                  ->where('tracking_number', 'LIKE', "%{$search}%")
-                  ->orWhere('carrier', 'LIKE', "%{$search}%")
-                  ->orWhere('recipient_name', 'LIKE', "%{$search}%")
-                  ->orWhere('department', 'LIKE', "%{$search}%");
+            $like = '%' . mb_strtolower($search) . '%';
+            $query->where(function ($q) use ($like) {
+                foreach (['delivery_code', 'description', 'tracking_number', 'carrier', 'recipient_name', 'recipient_email', 'department', 'collected_by'] as $col) {
+                    $q->orWhereRaw('LOWER(COALESCE(' . $col . ", '')) LIKE ?", [$like]);
+                }
             });
         }
 
@@ -221,6 +220,12 @@ class DeliveryController extends Controller
         $validated = $request->validate([
             'collected_by' => ['required', 'string', 'max:150'],
         ]);
+
+        if ($delivery->status === 'collected' || $delivery->collected_at) {
+            return back()->with('error', 'This delivery was already collected'
+                . ($delivery->collected_by ? ' by ' . $delivery->collected_by : '')
+                . ($delivery->collected_at ? ' on ' . Carbon::parse($delivery->collected_at)->format('d M Y, h:i A') : '') . '.');
+        }
 
         $delivery->update([
             'status' => 'collected',

@@ -25,6 +25,10 @@ function openInviteModal() {
             filterHostEmployeesBySite('');
             filterMeetingRoomsBySite('');
 
+            document.getElementById('invEditingId').value = '';
+            document.getElementById('invEditingStatus').value = '';
+            document.getElementById('invFormError').style.display = 'none';
+            document.getElementById('inv_visit_date').min = "{{ date('Y-m-d') }}";
             setInviteScheduleLocked(false);
             document.getElementById('inviteModal').classList.add('open');
         }
@@ -84,7 +88,13 @@ function openInviteModal() {
             document.getElementById('inv_special_instructions').value = data.special_instructions || '';
             document.getElementById('inv_items_to_bring').value = data.items_to_bring || '';
 
-            setInviteScheduleLocked(data.status === 'checked_in');
+            document.getElementById('invEditingId').value = data.id || '';
+            document.getElementById('invEditingStatus').value = data.status || '';
+            document.getElementById('invFormError').style.display = 'none';
+            // past dates can't be chosen; an existing past date may stay as it is
+            const todayStr = "{{ date('Y-m-d') }}";
+            document.getElementById('inv_visit_date').min = (data.visit_date && data.visit_date < todayStr) ? data.visit_date : todayStr;
+            setInviteScheduleLocked(['checked_in', 'checked_out'].includes(data.status));
             document.getElementById('inviteModal').classList.add('open');
         }
 
@@ -95,6 +105,42 @@ function openInviteModal() {
             if (fs) fs.disabled = !!locked;
             if (note) note.style.display = locked ? 'flex' : 'none';
         }
+
+        @if ((session('error') || $errors->any()) && old('_form') === 'invite')
+        // The last pre-registration save was refused: reopen the form with what was typed and show why
+        document.addEventListener('DOMContentLoaded', function () {
+            const old = @json(request()->old());
+            if (old._editing_invitation_id) {
+                openEditInviteModal({ id: old._editing_invitation_id, status: old._editing_status || '' });
+            } else {
+                openInviteModal();
+            }
+            const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+            set('inv_name', old.name);
+            set('inv_company_name', old.company_name);
+            set('inv_email', old.email);
+            set('inv_phone_code', old.phone_code);
+            set('inv_phone', old.phone);
+            set('inv_id_type_id', old.id_type_id);
+            set('inv_id_number', old.id_number);
+            set('inv_visit_date', old.visit_date);
+            set('inv_expected_arrival', old.expected_arrival);
+            set('inv_expected_departure', old.expected_departure);
+            set('inv_duration', old.duration);
+            set('inv_recurring', old.recurring);
+            set('inv_purpose_id', old.purpose_id);
+            set('inv_visitor_type_id', old.visitor_type_id);
+            set('inv_host_employee_id', old.host_employee_id);
+            set('inv_department_id', old.department_id);
+            set('inv_meeting_room', old.meeting_room);
+            set('inv_expected_visitor_count', old.expected_visitor_count);
+            set('inv_special_instructions', old.special_instructions);
+            set('inv_items_to_bring', old.items_to_bring);
+            ['send_confirmation_email', 'notify_host_on_arrival', 'send_qr_self_checkin', 'requires_nda', 'wifi_guest_access', 'parking_required', 'escort_required'].forEach(k => { const el = document.getElementById('inv_' + k); if (el) el.checked = !!old[k]; });
+            const err = document.getElementById('invFormError');
+            if (err) { err.innerText = @json(session('error') ?? $errors->first()); err.style.display = ''; }
+        });
+        @endif
 
         function closeInviteModal() {
             document.getElementById('inviteModal').classList.remove('open');
